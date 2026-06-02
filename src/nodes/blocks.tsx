@@ -47,7 +47,7 @@ function ClickableLinkText({ node, theme, onLinkClick }: { node: any; theme: Tui
         if (!node.url) return;
 
         const result = onLinkClick ? await onLinkClick(node.url) : await openUrl(node.url, { renderer });
-        if (!result.ok) {
+        if (result && !result.ok) {
           setError(result.reason === "file-not-found" ? " file not found" : " open failed");
         }
       }}
@@ -281,7 +281,7 @@ function DefListBlock({ node, theme, depth, onLinkClick }: { node: DefListData; 
             <text fg={theme.muted} flexShrink={0}>{"  : "}</text>
             <box flexDirection="column" flexGrow={1} flexShrink={1}>
               {child.children.map((c: any, j: number) => (
-                <BlockNode key={j} node={c} theme={theme} depth={depth + 1} />
+                <BlockNode key={j} node={c} theme={theme} depth={depth + 1} onLinkClick={onLinkClick} />
               ))}
             </box>
           </box>

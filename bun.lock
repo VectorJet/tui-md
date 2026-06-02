@@ -5,6 +5,7 @@
     "": {
       "name": "tui-md",
       "dependencies": {
+        "@types/mdast": "^4.0.4",
         "beautiful-mermaid": "^1.1.3",
         "hast-util-to-string": "^3.0.1",
         "katex": "^0.17.0",

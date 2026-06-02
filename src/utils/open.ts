@@ -96,14 +96,19 @@ async function openWithConfiguredEditor(filePath: string) {
   if (!configuredEditor) return false;
 
   try {
-    await Bun.openInEditor(filePath);
-    return true;
+    const bun = (globalThis as typeof globalThis & { Bun?: { openInEditor?: (path: string) => Promise<unknown> } }).Bun;
+    if (bun?.openInEditor) {
+      await bun.openInEditor(filePath);
+      return true;
+    }
   } catch {
-    const [command, ...args] = configuredEditor.split(/\s+/).filter(Boolean);
-    if (!command || !(await commandExists(command))) return false;
-    spawnDetached(command, [...args, filePath]);
-    return true;
+    // Fall through to the configured command below.
   }
+
+  const [command, ...args] = configuredEditor.split(/\s+/).filter(Boolean);
+  if (!command || !(await commandExists(command))) return false;
+  spawnDetached(command, [...args, filePath]);
+  return true;
 }
 
 async function openWithGuiEditor(filePath: string) {
