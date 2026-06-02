@@ -4,7 +4,6 @@ import type { PhrasingContent, HTML } from "mdast";
 import { toTextAttributes, mergeAttrs, type InlineAttrs } from "../utils/attrs";
 import { toSuperscript, toSubscript } from "../utils/unicode";
 import { MathInline } from "./math";
-import { openUrl } from "../utils/open";
 
 interface InlineProps {
   node: PhrasingContent | HTML | HtmlInlineNode;
@@ -21,23 +20,17 @@ interface HtmlInlineNode {
 }
 
 function LinkNode({ node, attrs, theme }: InlineProps) {
-  const [isHovered, setIsHovered] = React.useState(false);
   const Link = "a" as any;
+  const linkAttrs = mergeAttrs(attrs, { underline: true, fg: theme.link });
+
   return (
     <Link
       href={(node as any).url}
-      attributes={toTextAttributes(mergeAttrs(attrs, { underline: true }))}
-      fg={isHovered ? theme.accent : theme.link}
-      focusable={true}
-      onMouseOver={() => setIsHovered(true)}
-      onMouseOut={() => setIsHovered(false)}
-      onMouseDown={() => {
-        const url = (node as any).url;
-        if (url) openUrl(url);
-      }}
+      attributes={toTextAttributes(linkAttrs)}
+      fg={theme.link}
     >
       {(node as any).children.map((c: any, i: number) => (
-        <InlineNode key={i} node={c} attrs={mergeAttrs(attrs, { underline: true, fg: isHovered ? theme.accent : theme.link })} theme={theme} />
+        <InlineNode key={i} node={c} attrs={linkAttrs} theme={theme} />
       ))}
     </Link>
   );
