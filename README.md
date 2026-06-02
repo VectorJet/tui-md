@@ -1,8 +1,8 @@
 # tui-md
 
-Markdown rendering components for OpenTUI React applications.
+Markdown rendering components for [OpenTUI](https://github.com/nicholasgasior/opentui) React applications.
 
-`tui-md` is a library, not a standalone CLI. It exports a React component that renders markdown inside an OpenTUI app.
+`tui-md` is a library, not a standalone CLI. It exports a React component that renders rich markdown inside an OpenTUI terminal app — with syntax-highlighted code blocks, LaTeX math, Mermaid diagrams, tables, GFM extensions, and interactive clickable links.
 
 ## Install
 
@@ -54,24 +54,165 @@ import {
 />
 ```
 
-Props:
+**Props:**
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `content` | `string` | required | Markdown source to render. |
-| `streaming` | `boolean` | `false` | Appends a cursor to the last text node for streaming output. |
+| `streaming` | `boolean` | `false` | Appends a block cursor (`█`) to the last text node for streaming/live output. |
 | `width` | `number \| string` | `"100%"` | Width passed to the root OpenTUI box. |
 | `theme` | `Partial<TuiMdTheme>` | `{}` | Color overrides merged with `defaultTheme`. |
 | `onLinkClick` | `TuiMdLinkHandler` | built-in opener | Optional link click handler. |
 
+---
+
+## Supported Markdown
+
+`tui-md` uses a unified/remark pipeline with the following plugins to cover standard CommonMark plus a wide set of extensions:
+
+### Block elements
+
+| Feature | Syntax |
+| --- | --- |
+| Headings (H1–H6) | `# … ######` |
+| Paragraphs | plain text |
+| Blockquotes | `> …` |
+| Ordered lists | `1. …` |
+| Unordered lists | `- …` / `* …` / `+ …` |
+| Task lists | `- [x] done` / `- [ ] todo` |
+| Thematic breaks | `---` |
+| Front matter | YAML fenced with `---` |
+| Definition lists | `Term\n: description` |
+| Footnote definitions | `[^label]: …` |
+| Tables | GFM pipe syntax |
+| Fenced code blocks | ` ```lang … ``` ` |
+| Math (display) | `$$…$$` |
+| GitHub alerts | `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]` |
+| Mermaid diagrams | ` ```mermaid … ``` ` |
+| Diff/patch blocks | ` ```diff … ``` ` |
+
+### Inline elements
+
+| Feature | Syntax |
+| --- | --- |
+| Bold | `**text**` / `__text__` |
+| Italic | `*text*` / `_text_` |
+| Strikethrough | `~~text~~` |
+| Inline code | `` `code` `` |
+| Links | `[label](url)` |
+| Inline math | `$…$` |
+| Footnote references | `[^label]` |
+| Highlight / mark | `==text==` |
+| Abbreviations | `*[KEY]: definition` (auto-expands throughout the document) |
+| Gemoji shortcodes | `:smile:`, `:rocket:`, etc. |
+| Superscript | `<sup>text</sup>` |
+| Subscript | `<sub>text</sub>` |
+| Keyboard keys | `<kbd>Ctrl</kbd>` / `<kbd>Ctrl+S</kbd>` |
+| Underline | `<u>text</u>` |
+| Insert (diff add) | `<ins>text</ins>` |
+| Delete (diff del) | `<del>text</del>` |
+| Small text | `<small>text</small>` |
+| Inline code (HTML) | `<code>`, `<samp>`, `<tt>` |
+| Line breaks | `<br>` |
+
+> **Note:** Unrecognized inline HTML tags are treated as transparent passthroughs — their children are rendered with current text attributes.
+
+---
+
+## Rendering Features
+
+### Syntax-highlighted code blocks
+
+All fenced code blocks are rendered with full syntax highlighting powered by OpenTUI's `<code>` component using a GitHub Dark–inspired token style. The language label is shown above the block.
+
+```markdown
+```typescript
+const greet = (name: string) => `Hello, ${name}!`;
+```
+```
+
+### Diff blocks
+
+Fenced blocks with `diff` or `patch` as their language are rendered with OpenTUI's native unified diff view — additions in green, deletions in red.
+
+### Mermaid diagrams
+
+Fenced blocks with `mermaid` as their language are rendered as terminal-friendly ASCII art via the [`beautiful-mermaid`](https://github.com/nicholasgasior/beautiful-mermaid) package.
+
+```markdown
+```mermaid
+graph LR
+    A --> B --> C
+```
+```
+
+### LaTeX math
+
+Math expressions are rendered as genuine Unicode art by a built-in TypeScript port of [TeXicode](https://github.com/nicholasgasior/texicode) — no subprocess or external binary required. This produces real stacked fractions, vertical integral signs, positioned super/subscripts, and proper `√` glyphs.
+
+- **Display math** — `$$…$$` or a fenced `math` block — is centered in its own box.
+- **Inline math** — `$…$` — is rendered inline within text.
+
+Results are cached in memory so re-renders of the same expression are free.
+
+### Tables
+
+Tables are rendered with full Unicode box-drawing borders (`┌─┬─┐ │ ├─┼─┤ └─┴─┘`). Column widths are automatically measured by scanning cell content and then scaled proportionally when the table is wider than the terminal.
+
+Column alignment (`left`, `center`, `right`) from the GFM alignment marker is respected.
+
+### GitHub alerts
+
+`> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, and `> [!CAUTION]` are rendered as styled callout blocks with a colored left border and a bold badge label:
+
+- **NOTE** — blue (`#0969da`)
+- **TIP** — green (`#1a7f37`)
+- **IMPORTANT** — purple (`#8250df`)
+- **WARNING** — amber (`#bf8700`)
+- **CAUTION** — red (`#cf222e`)
+
+### Front matter
+
+YAML front matter (fenced with `---`) is displayed in a rounded border box labelled **FRONT MATTER** in muted colour.
+
+### Keyboard keys
+
+`<kbd>` tags are rendered as styled key caps with a background tint and bracketed notation. Compound keys like `<kbd>Ctrl+S</kbd>` are split on `+` and each key rendered individually with a `+` separator.
+
+### Superscript & subscript
+
+`<sup>` and `<sub>` tags map to Unicode superscript/subscript characters where the Unicode block covers them (digits, many lowercase/uppercase letters, common symbols). When a character has no Unicode equivalent the whole string falls back to `^(text)` or `_(text)` notation.
+
+### Streaming mode
+
+Set `streaming={true}` to append a `█` block cursor to the last text leaf in the AST on every render. This is designed for live/streaming content where the markdown source grows token by token.
+
+```tsx
+<Markdown content={partialContent} streaming={true} />
+```
+
+---
+
 ## Link Handling
 
-By default, clicked links use the package's built-in opener:
+### Default built-in opener
 
-- `http`, `https`, and `mailto` links are opened with the system opener.
-- File paths are opened with `$VISUAL`, `$EDITOR`, a GUI editor, terminal editor, or the system file association when available.
+Clicked links use the package's built-in multi-strategy opener:
 
-Library consumers can override that behavior:
+1. `http`, `https`, and `mailto` links → system default browser/app (`xdg-open` on Linux, `open` on macOS, `start` on Windows).
+2. File paths (relative or `file://`) → tried in order:
+   - `$VISUAL` or `$EDITOR` environment variable.
+   - GUI editor: `code`, `code-insiders`.
+   - Inline terminal editor (suspends/resumes the OpenTUI renderer): `nvim`, `vim`, `nano`, `vi`.
+   - Terminal editor in a new terminal window: `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal`, `alacritty`, `kitty`, `wezterm`.
+   - System file association (`xdg-open` / `open`).
+3. If the file does not exist, an inline error message is shown next to the link.
+
+Links highlight on hover and change colour when hovered (uses `theme.accent` + `theme.codeBg`).
+
+### Custom handler
+
+Pass `onLinkClick` to take full control:
 
 ```tsx
 <Markdown
@@ -82,7 +223,7 @@ Library consumers can override that behavior:
 />
 ```
 
-Return an error-like result to show a small inline failure message:
+Return an error result to display an inline failure message beside the link:
 
 ```tsx
 <Markdown
@@ -95,7 +236,22 @@ Return an error-like result to show a small inline failure message:
 />
 ```
 
+**`TuiMdLinkHandler` signature:**
+
+```ts
+type TuiMdLinkHandler = (url: string) =>
+  void | OpenUrlResult | Promise<void | OpenUrlResult>;
+
+type OpenUrlResult =
+  | { ok: true }
+  | { ok: false; reason: "file-not-found" | "open-failed"; path?: string; message: string };
+```
+
+---
+
 ## Theming
+
+All colours are defined in `TuiMdTheme`. Pass a partial object to `<Markdown theme={…} />` — it is merged with `defaultTheme`.
 
 ```tsx
 import { Markdown, defaultTheme } from "tui-md";
@@ -111,32 +267,96 @@ import { Markdown, defaultTheme } from "tui-md";
 />
 ```
 
-## Supported Markdown
+### `TuiMdTheme` tokens
 
-The renderer supports common markdown plus several GitHub-style extensions:
+| Token | Default | Used for |
+| --- | --- | --- |
+| `text` | `#d4d4d4` | Body text |
+| `muted` | `#6b6b6b` | Heading prefixes, blockquote gutter, footnote labels, front matter |
+| `accent` | `#569cd6` | Link hover colour, heading fallback, definition list terms |
+| `border` | `#3c3c3c` | Table borders, blockquote bar, thematic break |
+| `link` | `#4ec9b0` | Link default colour |
+| `code` | `#ce9178` | Inline code foreground |
+| `codeBg` | `#1e1e1e` | Inline code & code block background |
+| `math` | `#dcdcaa` | Math expressions |
+| `list` | `#569cd6` | List bullets and numbers |
+| `kbd` | `#d4d4d4` | Keyboard key foreground |
+| `kbdBg` | `#3c3c3c` | Keyboard key background |
+| `highlightFg` | `#000000` | `==mark==` foreground |
+| `highlightBg` | `#ffff00` | `==mark==` background |
+| `diffAdd` | `#4ec9b0` | `<ins>` / diff `+` lines |
+| `diffDel` | `#f44747` | `<del>` / diff `-` lines, link error messages |
+| `h1` | `#4ec9b0` | H1 heading colour |
+| `h2` | `#569cd6` | H2 heading colour |
+| `h3` | `#c586c0` | H3 heading colour |
+| `h4` | `#dcdcaa` | H4 heading colour |
+| `h5` | `#ce9178` | H5 heading colour |
+| `h6` | `#6b6b6b` | H6 heading colour |
 
-- headings, paragraphs, blockquotes, lists, task lists, links, inline code, and code blocks
-- tables, strikethrough, footnotes, front matter, and math
-- GitHub alert blockquotes such as `[!NOTE]` and `[!WARNING]`
-- definition lists, abbreviations, `==mark==`, gemoji shortcodes, and selected inline HTML tags such as `kbd`, `sub`, and `sup`
-- Mermaid code blocks rendered as terminal-friendly ASCII
+### `resolveTheme`
+
+```ts
+import { resolveTheme, defaultTheme } from "tui-md";
+
+const theme = resolveTheme({ link: "#8be9fd" });
+// => { ...defaultTheme, link: "#8be9fd" }
+```
+
+---
 
 ## Parser Helpers
 
-`parse(content)` and `parseStreaming(content)` are exported for apps that need access to the markdown AST before rendering.
+`parse` and `parseStreaming` are exported for apps that need access to the markdown AST before (or instead of) rendering. Both return an `mdast` `Root` node with all custom transformations already applied.
 
 ```ts
-import { parse } from "tui-md";
+import { parse, parseStreaming } from "tui-md";
 
-const ast = parse("# Title");
+// Standard parse
+const ast = parse("# Title\n\n==highlighted==");
+
+// Streaming parse — injects a block cursor into the last text leaf
+const ast = parseStreaming("# Title\n\nPartial sen");
 ```
+
+The full remark pipeline applied during parsing:
+
+| Plugin | Purpose |
+| --- | --- |
+| `remark-parse` | CommonMark base |
+| `remark-frontmatter` | YAML front matter |
+| `remark-gfm` | Tables, strikethrough, task lists, autolinks |
+| `remark-math` | `$…$` and `$$…$$` math |
+| `remark-definition-list` | Definition list syntax |
+| `remarkAbbr` (built-in) | `*[KEY]: def` abbreviations |
+| `remarkMergeInlineHtml` (built-in) | Merges open/close HTML tag pairs into a single node |
+| `remarkMark` (built-in) | `==text==` highlight syntax |
+| `remarkGemoji` (built-in) | `:shortcode:` emoji expansion |
+| `remark-github-blockquote-alert` | GitHub-style `[!NOTE]` / `[!WARNING]` alerts |
+
+---
 
 ## Development
 
 ```bash
 bun install
-bun run test
-npm pack --dry-run
+bun run test          # typechecks + builds
+bun run typecheck     # typecheck only
+bun run test:interactive  # launch the interactive OpenTUI demo
+npm pack --dry-run    # preview what gets published to npm
 ```
 
-`bun run test` typechecks the library source and builds the publish output. `npm pack --dry-run` shows exactly what would be published to npm.
+`bun run test` runs TypeScript typechecking followed by the production build into `dist/`. `npm pack --dry-run` shows exactly what would be published.
+
+### Interactive demo
+
+```bash
+bun run test:interactive
+```
+
+Launches a live OpenTUI app (`tests/interactive.tsx`) that renders a rich markdown document covering every supported feature — useful for visually validating changes.
+
+---
+
+## License
+
+MIT
