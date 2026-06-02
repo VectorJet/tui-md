@@ -1,20 +1,64 @@
 import type { TuiMdTheme } from "../theme";
-import React from "react";
+import React, { useState } from "react";
 import type { BlockContent, DefinitionContent, Heading, Blockquote, List, ListItem, Paragraph, FootnoteDefinition } from "mdast";
 import { InlineNode } from "./inline";
-import { baseAttrs, mergeAttrs } from "../utils/attrs";
+import { baseAttrs, mergeAttrs, toTextAttributes } from "../utils/attrs";
 import { TextAttributes } from "@opentui/core";
+import { useRenderer } from "@opentui/react";
+import { openUrl } from "../utils/open";
+import type { TuiMdLinkHandler } from "../index";
+
+type DefListData = { type: "defList"; children: DefListChild[] };
+type DefListChild =
+  | { type: "defListTerm"; children: any[] }
+  | { type: "defListDescription"; children: any[] };
 
 interface BlockProps {
   node: BlockContent | DefinitionContent;
   theme: TuiMdTheme;
   depth?: number;
+  onLinkClick?: TuiMdLinkHandler;
 }
 
 const HEADING_FG_KEYS = ["text", "h1", "h2", "h3", "h4", "h5", "h6"] as const;
 const HEADING_PREFIXES = ["", "# ", "## ", "### ", "#### ", "##### ", "###### "];
 
-export function BlockNode({ node, theme, depth = 0 }: BlockProps): React.ReactNode {
+function ClickableLinkText({ node, theme, onLinkClick }: { node: any; theme: TuiMdTheme; onLinkClick?: TuiMdLinkHandler }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const renderer = useRenderer();
+  const attrs = mergeAttrs(baseAttrs(), {
+    underline: true,
+    fg: isHovered ? theme.accent : theme.link,
+    bg: isHovered ? theme.codeBg : undefined,
+  });
+
+  return (
+    <text
+      flexShrink={1}
+      fg={isHovered ? theme.accent : theme.link}
+      bg={isHovered ? theme.codeBg : undefined}
+      attributes={toTextAttributes(attrs)}
+      onMouseOver={() => setIsHovered(true)}
+      onMouseOut={() => setIsHovered(false)}
+      onMouseDown={async (event: any) => {
+        event?.stopPropagation?.();
+        setError(null);
+        if (!node.url) return;
+
+        const result = onLinkClick ? await onLinkClick(node.url) : await openUrl(node.url, { renderer });
+        if (!result.ok) {
+          setError(result.reason === "file-not-found" ? " file not found" : " open failed");
+        }
+      }}
+    >
+      <InlineNode node={node} attrs={attrs} theme={theme} />
+      {error ? <span fg={theme.diffDel} attributes={TextAttributes.NONE}>{error}</span> : null}
+    </text>
+  );
+}
+
+export function BlockNode({ node, theme, depth = 0, onLinkClick }: BlockProps): React.ReactNode {
   switch (node.type) {
     case "paragraph": {
       const children = (node as Paragraph).children;
@@ -42,6 +86,9 @@ export function BlockNode({ node, theme, depth = 0 }: BlockProps): React.ReactNo
               <InlineNode node={child as any} attrs={baseAttrs()} theme={theme} />
             </text>
           );
+        } else if (child.type === "link") {
+          flush();
+          groups.push(<ClickableLinkText key={groups.length} node={child as any} theme={theme} onLinkClick={onLinkClick} />);
         } else {
           currentGroup.push(child);
         }
@@ -117,7 +164,7 @@ export function BlockNode({ node, theme, depth = 0 }: BlockProps): React.ReactNo
                 <text bg={alertColor} fg="#ffffff" attributes={TextAttributes.BOLD}>{` ${alertTitle.toUpperCase()} `}</text>
               </box>
               {contentChildren.map((c, i) => (
-                <BlockNode key={i} node={c as any} theme={theme} depth={depth + 1} />
+                <BlockNode key={i} node={c as any} theme={theme} depth={depth + 1} onLinkClick={onLinkClick} />
               ))}
             </box>
           </box>
@@ -130,7 +177,7 @@ export function BlockNode({ node, theme, depth = 0 }: BlockProps): React.ReactNo
           <text fg={theme.border} flexShrink={0}>{"\u2502 "}</text>
           <box flexDirection="column" flexGrow={1} flexShrink={1}>
             {bq.children.map((c, i) => (
-              <BlockNode key={i} node={c as any} theme={{ ...theme, text: theme.muted }} depth={depth + 1} />
+              <BlockNode key={i} node={c as any} theme={{ ...theme, text: theme.muted }} depth={depth + 1} onLinkClick={onLinkClick} />
             ))}
           </box>
         </box>
@@ -150,6 +197,7 @@ export function BlockNode({ node, theme, depth = 0 }: BlockProps): React.ReactNo
               start={list.start ?? 1}
               theme={theme}
               depth={depth}
+              onLinkClick={onLinkClick}
             />
           ))}
         </box>
@@ -169,55 +217,14 @@ export function BlockNode({ node, theme, depth = 0 }: BlockProps): React.ReactNo
         <box flexDirection="row" flexWrap="wrap" width="100%" marginBottom={1}>
           <text fg={theme.muted}>[^{fn.identifier}]: </text>
           <box flexDirection="column" flexGrow={1}>
-            {fn.children.map((c, i) => <BlockNode key={i} node={c as any} theme={theme} depth={depth} />)}
+            {fn.children.map((c, i) => <BlockNode key={i} node={c as any} theme={theme} depth={depth} onLinkClick={onLinkClick} />)}
           </box>
         </box>
       );
     }
 
-    case "htmlInline" as any: {
-      const htmlNode = node as any;
-      const tag = htmlNode.tag.toLowerCase();
-
-      if (tag === "details") {
-        // Extract summary text if it's in the first child
-        let summaryText = "Details";
-        const firstChild = htmlNode.children[0];
-        let contentChildren = htmlNode.children;
-
-        if (firstChild?.type === "html" && firstChild.value.startsWith("<summary>")) {
-          const match = firstChild.value.match(/<summary>(.*?)<\/summary>/is);
-          if (match) summaryText = match[1].trim();
-          contentChildren = htmlNode.children.slice(1);
-        }
-
-        return <DetailsNode summaryText={summaryText} content={contentChildren} isRawHtml={false} theme={theme} depth={depth} />;
-      }
-
-      // For other block HTML elements, just transparently render children
-      return (
-        <box flexDirection="column" width="100%">
-          {htmlNode.children.map((c: any, i: number) => (
-            <BlockNode key={i} node={c} theme={theme} depth={depth} />
-          ))}
-        </box>
-      );
-    }
-
-    case "html": {
-      const value = (node as any).value || "";
-      if (value.startsWith("<details>")) {
-        let summaryText = "Details";
-        const summaryMatch = value.match(/<summary>(.*?)<\/summary>/is);
-        if (summaryMatch) summaryText = summaryMatch[1].trim();
-
-        const contentMatch = value.match(/<\/summary>(.*?)<\/details>/is);
-        const contentStr = contentMatch ? contentMatch[1].trim() : value;
-
-        return <DetailsNode summaryText={summaryText} content={contentStr} isRawHtml={true} theme={theme} depth={depth} />;
-      }
-      return null;
-    }
+    case "defList" as any:
+      return <DefListBlock node={node as unknown as DefListData} theme={theme} depth={depth} onLinkClick={onLinkClick} />;
 
     default:
       return null;
@@ -231,9 +238,10 @@ interface ListItemProps {
   start: number;
   theme: TuiMdTheme;
   depth: number;
+  onLinkClick?: TuiMdLinkHandler;
 }
 
-function ListItemNode({ node, index, ordered, start, theme, depth }: ListItemProps) {
+function ListItemNode({ node, index, ordered, start, theme, depth, onLinkClick }: ListItemProps) {
   const bullet = ordered ? `${start + index}. ` : depth === 0 ? "\u2022 " : depth === 1 ? "\u25e6 " : "\u25aa ";
   const isTask = node.checked !== null && node.checked !== undefined;
   const checkbox = isTask ? (node.checked ? "[x] " : "[ ] ") : "";
@@ -244,7 +252,7 @@ function ListItemNode({ node, index, ordered, start, theme, depth }: ListItemPro
         <text fg={theme.list} flexShrink={0}>{bullet}{checkbox}</text>
         <box flexDirection="column" flexGrow={1} flexShrink={1}>
           {node.children.map((c, i) => (
-            <BlockNode key={i} node={c as any} theme={theme} depth={depth + 1} />
+            <BlockNode key={i} node={c as any} theme={theme} depth={depth + 1} onLinkClick={onLinkClick} />
           ))}
         </box>
       </box>
@@ -252,36 +260,33 @@ function ListItemNode({ node, index, ordered, start, theme, depth }: ListItemPro
   );
 }
 
-function DetailsNode({ summaryText, content, isRawHtml, theme, depth }: { summaryText: string, content: any, isRawHtml: boolean, theme: TuiMdTheme, depth: number }) {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const [isHovered, setIsHovered] = React.useState(false);
-  const icon = isOpen ? "▼ " : "▶ "; // ▼ : ▶
-
+function DefListBlock({ node, theme, depth, onLinkClick }: { node: DefListData; theme: TuiMdTheme; depth: number; onLinkClick?: TuiMdLinkHandler }) {
   return (
-    <box flexDirection="column" width="100%" marginBottom={1} borderStyle="rounded" borderColor={theme.muted}>
-      <box 
-        flexDirection="row" 
-        paddingX={1} 
-        focusable={true}
-        onMouseOver={() => setIsHovered(true)}
-        onMouseOut={() => setIsHovered(false)}
-        onMouseDown={() => setIsOpen(!isOpen)}
-        backgroundColor={isHovered ? theme.muted : undefined}
-      >
-        <text fg={theme.accent}>{icon}</text>
-        <text fg={theme.text} attributes={TextAttributes.BOLD}>{summaryText}</text>
-      </box>
-      {isOpen && (
-        <box flexDirection="column" paddingLeft={2} paddingTop={1}>
-          {isRawHtml ? (
-            <text fg={theme.text}>{content}</text>
-          ) : (
-            content.map((c: any, i: number) => (
-              <BlockNode key={i} node={c} theme={theme} depth={depth + 1} />
-            ))
-          )}
-        </box>
-      )}
+    <box flexDirection="column" width="100%" marginBottom={1}>
+      {node.children.map((child, i) => {
+        if (child.type === "defListTerm") {
+          return (
+            <box key={i} flexDirection="row" width="100%">
+              <text fg={theme.accent} attributes={TextAttributes.BOLD}>
+                {child.children.map((c: any, j: number) => (
+                  <InlineNode key={j} node={c} attrs={mergeAttrs(baseAttrs(), { bold: true, fg: theme.accent })} theme={theme} />
+                ))}
+              </text>
+            </box>
+          );
+        }
+        // defListDescription
+        return (
+          <box key={i} flexDirection="row" width="100%">
+            <text fg={theme.muted} flexShrink={0}>{"  : "}</text>
+            <box flexDirection="column" flexGrow={1} flexShrink={1}>
+              {child.children.map((c: any, j: number) => (
+                <BlockNode key={j} node={c} theme={theme} depth={depth + 1} />
+              ))}
+            </box>
+          </box>
+        );
+      })}
     </box>
   );
 }

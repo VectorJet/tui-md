@@ -27,7 +27,6 @@ export function TableBlock({ node, theme }: TableProps) {
       const getRawText = (n: any): string => {
         if (n.type === "text") return n.value || "";
         if (n.type === "inlineCode") return ` ${n.value || ""} `; // Matches {` ${(node as any).value} `}
-        if (n.type === "image") return `[image: ${n.alt ?? n.url}]`;
         if (n.children) return n.children.map(getRawText).join("");
         return "";
       };
@@ -78,7 +77,10 @@ export function TableBlock({ node, theme }: TableProps) {
       {header && <TableRowNode row={header} align={align} boxWidths={boxWidths} isHeader theme={theme} />}
       {header && rows.length > 0 && renderBorder("├", "─", "┤", "┼")}
       {rows.map((row, i) => (
-        <TableRowNode key={i} row={row} align={align} boxWidths={boxWidths} isHeader={false} theme={theme} />
+        <React.Fragment key={i}>
+          <TableRowNode row={row} align={align} boxWidths={boxWidths} isHeader={false} theme={theme} />
+          {i < rows.length - 1 && renderBorder("├", "─", "┤", "┼")}
+        </React.Fragment>
       ))}
       {renderBorder("└", "─", "┘", "┴")}
     </box>

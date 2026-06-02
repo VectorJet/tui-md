@@ -1,24 +1,35 @@
 {
   "name": "tui-md",
   "version": "0.1.0",
+  "description": "OpenTUI React markdown renderer.",
   "type": "module",
-  "module": "src/index.tsx",
-  "main": "src/index.tsx",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.tsx"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
+    "build": "rm -rf dist && bun build ./src/index.tsx --outdir ./dist --target node --packages external && tsc -p tsconfig.build.json",
+    "prepack": "bun run build",
     "test:interactive": "bun run tests/interactive.tsx",
     "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun run typecheck && bun run build"
   },
   "dependencies": {
-    "@types/katex": "^0.16.8",
     "beautiful-mermaid": "^1.1.3",
     "hast-util-to-string": "^3.0.1",
     "katex": "^0.17.0",
     "rehype-raw": "^7.0.0",
     "remark-abbr": "^1.4.2",
+    "remark-definition-list": "^2.0.0",
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "remark-github-blockquote-alert": "^2.1.0",
@@ -29,11 +40,13 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/katex": "^0.16.8",
     "@types/react": "^19.2.16",
     "typescript": "^5"
   },
   "peerDependencies": {
     "@opentui/core": "*",
-    "@opentui/react": "*"
+    "@opentui/react": "*",
+    "react": ">=19.2.0"
   }
 }

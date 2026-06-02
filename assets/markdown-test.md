@@ -160,48 +160,27 @@ ___
 
 ### Relative Link
 
-See the [README](../README.md) for setup instructions.
+See the [README](README.md) for setup instructions.
 
 ### Email Link
 
-<mailto:user@example.com>
+[Email support](mailto:dummy@example.com)
+
+### File Link
+
+[Relative dummy file](README.md)
+
+### File URI Link
+
+[File URI dummy](file://README.md)
+
+### Missing File Link
+
+[Missing dummy file](missing-dummy-file.md)
 
 ### Automatic Link
 
 <https://example.com>
-
-## 9. Images
-
-### Inline Image
-
-![Alt text for an image](https://via.placeholder.com/400x200 "Optional title")
-
-### Image with Link
-
-[![Clickable banner](https://via.placeholder.com/200x100)](https://example.com)
-
-### Reference Image
-
-![Alt text][logo]
-
-[logo]: https://via.placeholder.com/150x50 "Logo"
-
-### Figure with Caption
-
-<figure>
-  <img src="https://via.placeholder.com/600x200" alt="Placeholder image">
-  <figcaption>Figure 1: A placeholder image demonstrating HTML figure/figcaption usage.</figcaption>
-</figure>
-
-### SVG Image
-
-<svg width="200" height="100" viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
-  <rect width="200" height="100" fill="#eee" rx="10"/>
-  <circle cx="50" cy="50" r="30" fill="#4a90d9"/>
-  <circle cx="100" cy="50" r="30" fill="#7ed321"/>
-  <circle cx="150" cy="50" r="30" fill="#d0021b"/>
-  <text x="200" y="90" font-size="14" fill="#333" text-anchor="end">SVG inline</text>
-</svg>
 
 ## 10. Tables
 
@@ -248,16 +227,6 @@ The HTML specification is maintained by the W3C.
 
 *[HTML]: Hyper Text Markup Language
 *[W3C]: World Wide Web Consortium
-
-## 13. Definition via HTML
-
-<dl>
-  <dt>Markdown</dt>
-  <dd>A lightweight markup language for creating formatted text.</dd>
-  <dt>CommonMark</dt>
-  <dd>A strongly defined, highly compatible specification of Markdown.</dd>
-  <dd>See <a href="https://commonmark.org/">commonmark.org</a> for details.</dd>
-</dl>
 
 ## 14. Math (LaTeX via KaTeX)
 
@@ -403,65 +372,6 @@ $$
 
 > [!CAUTION]
 > Advises about risks or negative outcomes of certain actions.
-
-## 16. Details / Collapsible Sections
-
-<details>
-<summary>Click to expand — release notes v2.4.0</summary>
-
-### Changelog
-
-**Features:**
-- Add dark mode support (#142)
-- Add CSV export (#156)
-
-**Bug fixes:**
-- Fix memory leak in stream handler (#148)
-- Fix timeout on large uploads (#151)
-
-**Performance:**
-- 40% faster startup time
-- Reduce heap usage by 25%
-
-```patch
---- a/src/main.go
-+++ b/src/main.go
-@@ -42,3 +42,4 @@
- func main() {
-   server.Start()
-+  log.Println("v2.4.0 deployed")
- }
-```
-
-</details>
-
-## 17. Embedded HTML
-
-<div style="border: 2px solid #4a90d9; padding: 1em; border-radius: 8px; background: #f8f9fa;">
-
-<h3 style="margin-top: 0; color: #4a90d9;">Styled HTML Block</h3>
-
-<p>This block uses raw HTML inside Markdown. You can use:</p>
-<ul>
-  <li><span style="color: red;">Colored text</span></li>
-  <li><span style="font-size: 1.2em;">Resized text</span></li>
-  <li><span style="font-family: monospace;">Monospace text</span></li>
-</ul>
-
-<table style="width: 100%; border-collapse: collapse;">
-  <tr>
-    <td style="border: 1px solid #ccc; padding: 4px; background: #e3f2fd;">A</td>
-    <td style="border: 1px solid #ccc; padding: 4px; background: #fff3e0;">B</td>
-    <td style="border: 1px solid #ccc; padding: 4px; background: #e8f5e9;">C</td>
-  </tr>
-  <tr>
-    <td style="border: 1px solid #ccc; padding: 4px; background: #fce4ec;">D</td>
-    <td style="border: 1px solid #ccc; padding: 4px; background: #f3e5f5;">E</td>
-    <td style="border: 1px solid #ccc; padding: 4px; background: #fff8e1;">F</td>
-  </tr>
-</table>
-
-</div>
 
 ## 18. Emoji (Shortcodes)
 
@@ -649,35 +559,6 @@ tags:
   - engineering
 ---
 ```
-
-## 26. HTML5 Elements
-
-<header>
-  <nav>
-    <a href="#home">Home</a> | <a href="#about">About</a> | <a href="#contact">Contact</a>
-  </nav>
-</header>
-
-<main>
-  <article>
-    <h2>Article Title</h2>
-    <section>
-      <h3>Section 1</h3>
-      <p>Article content goes here.</p>
-    </section>
-    <section>
-      <h3>Section 2</h3>
-      <p>More content here.</p>
-      <aside>
-        <p><em>Side note related to Section 2.</em></p>
-      </aside>
-    </section>
-  </article>
-</main>
-
-<footer>
-  <p>&copy; 2025 — All rights reserved.</p>
-</footer>
 
 ## 27. Data Table (Wide / Dense)
 

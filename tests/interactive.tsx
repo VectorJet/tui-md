@@ -2,7 +2,8 @@ import { createCliRenderer } from "@opentui/core";
 import { createRoot, useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/react";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { ScrollBoxRenderable } from "@opentui/core";
 import { Markdown } from "../src/index";
 
 const ASSET = join(import.meta.dir, "../assets/markdown-test.md");
@@ -16,6 +17,7 @@ function App() {
   const [mode, setMode] = useState<"static" | "streaming">("static");
   const [streamPos, setStreamPos] = useState(0);
   const [running, setRunning] = useState(false);
+  const scrollRef = useRef<ScrollBoxRenderable>(null);
 
   useEffect(() => {
     if (mode !== "streaming" || !running) return;
@@ -26,6 +28,12 @@ function App() {
     );
     return () => clearTimeout(t);
   }, [mode, running, streamPos]);
+
+  useEffect(() => {
+    if (mode === "streaming" && scrollRef.current) {
+      scrollRef.current.scrollTo(scrollRef.current.scrollHeight);
+    }
+  }, [streamPos, mode]);
 
   const startStream = useCallback(() => {
     setMode("streaming");
@@ -70,7 +78,7 @@ function App() {
       </box>
 
       {/* scrollable content */}
-      <scrollbox flexGrow={1} flexShrink={1} width="100%" scrollY={true} stickyScroll={false}>
+      <scrollbox ref={scrollRef} flexGrow={1} flexShrink={1} width="100%" scrollY={true} stickyScroll={true} stickyStart="bottom">
         <box flexDirection="column" width={Math.min(width - 4, 100)} paddingX={2} paddingY={1}>
           {content.length === 0
             ? <text fg="#6b6b6b">press [s] to start streaming simulation...</text>

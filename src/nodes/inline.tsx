@@ -4,6 +4,7 @@ import type { PhrasingContent, HTML } from "mdast";
 import { toTextAttributes, mergeAttrs, type InlineAttrs } from "../utils/attrs";
 import { toSuperscript, toSubscript } from "../utils/unicode";
 import { MathInline } from "./math";
+import { TextAttributes } from "@opentui/core";
 
 interface InlineProps {
   node: PhrasingContent | HTML | HtmlInlineNode;
@@ -79,13 +80,6 @@ export function InlineNode({ node, attrs, theme }: InlineProps): React.ReactNode
     case "link":
       return <LinkNode node={node} attrs={attrs} theme={theme} />;
 
-    case "image":
-      return (
-        <span fg={theme.link} attributes={toTextAttributes(mergeAttrs(attrs, { underline: true }))}>
-          {`[image: ${(node as any).alt ?? (node as any).url}]`}
-        </span>
-      );
-
     case "break":
       return <br />;
 
@@ -99,6 +93,32 @@ export function InlineNode({ node, attrs, theme }: InlineProps): React.ReactNode
     // math inline (remark-math) — render via KaTeX MathML→Unicode
     case "inlineMath":
       return <MathInline value={(node as any).value} theme={theme} />;
+
+    case "footnoteReference" as any: {
+      const label = (node as any).label ?? (node as any).identifier;
+      return (
+        <span fg={theme.link} attributes={toTextAttributes(mergeAttrs(attrs, { fg: theme.link }))}>
+          {toSuperscript(`[${label}]`)}
+        </span>
+      );
+    }
+
+    case "abbr" as any: {
+      const reference: string = (node as any).reference ?? "";
+      return (
+        <span
+          fg={attrs.fg ?? theme.text}
+          attributes={toTextAttributes(mergeAttrs(attrs, { underline: true }))}
+        >
+          {(node as any).children?.map((c: any, i: number) => (
+            <InlineNode key={i} node={c} attrs={mergeAttrs(attrs, { underline: true })} theme={theme} />
+          ))}
+          {reference ? (
+            <span fg={theme.muted} attributes={TextAttributes.NONE}>{` (${reference})`}</span>
+          ) : null}
+        </span>
+      );
+    }
 
     default:
       return null;

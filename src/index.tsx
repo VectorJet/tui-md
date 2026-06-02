@@ -1,19 +1,23 @@
 import React, { useMemo } from "react";
 import { parse, parseStreaming } from "./parser";
+import type { OpenUrlResult } from "./utils/open";
 import { Walk } from "./walk";
 import { resolveTheme, defaultTheme, type TuiMdTheme } from "./theme";
 
-export { defaultTheme, resolveTheme };
+export { defaultTheme, parse, parseStreaming, resolveTheme };
 export type { TuiMdTheme };
 
-interface MarkdownProps {
+export type TuiMdLinkHandler = (url: string) => void | OpenUrlResult | Promise<void | OpenUrlResult>;
+
+export interface MarkdownProps {
   content: string;
   streaming?: boolean;
   theme?: Partial<TuiMdTheme>;
   width?: number | string;
+  onLinkClick?: TuiMdLinkHandler;
 }
 
-export function Markdown({ content, streaming = false, theme: themeOverride, width = "100%" }: MarkdownProps) {
+export function Markdown({ content, streaming = false, theme: themeOverride, width = "100%", onLinkClick }: MarkdownProps) {
   const theme = useMemo(() => resolveTheme(themeOverride), [themeOverride]);
 
   const ast = useMemo(() => {
@@ -22,7 +26,7 @@ export function Markdown({ content, streaming = false, theme: themeOverride, wid
 
   return (
     <box flexDirection="column" width={width as any}>
-      <Walk ast={ast} theme={theme} />
+      <Walk ast={ast} theme={theme} onLinkClick={onLinkClick} />
     </box>
   );
 }

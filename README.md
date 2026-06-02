@@ -1,15 +1,26 @@
 # tui-md
 
-To install dependencies:
+Markdown rendering components for OpenTUI React.
+
+## Install
+
+```bash
+bun add tui-md @opentui/core @opentui/react react
+```
+
+## Usage
+
+```tsx
+import { render } from "@opentui/react";
+import { Markdown } from "tui-md";
+
+render(<Markdown content={"# Hello\n\nThis is **markdown**."} />);
+```
+
+## Development
 
 ```bash
 bun install
+bun run test
+npm pack --dry-run
 ```
-
-To run:
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.3.14. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.

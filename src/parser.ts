@@ -7,6 +7,7 @@ import type { Root } from "mdast";
 import { emojiMap } from "./utils/emojiMap";
 import { remarkAlert } from "remark-github-blockquote-alert";
 import remarkFrontmatter from "remark-frontmatter";
+import { remarkDefinitionList } from "remark-definition-list";
 
 /**
  * Merges consecutive html open-tag / inner-nodes / html close-tag sequences
@@ -108,6 +109,70 @@ function remarkMark() {
   };
 }
 
+/**
+ * Parses `*[KEY]: definition` lines and wraps every later occurrence of
+ * KEY in body text inside an `abbr` mdast node carrying the reference text.
+ * The definition lines themselves are stripped from the tree.
+ */
+function remarkAbbr() {
+  return (tree: Root) => {
+    const defs = new Map<string, string>();
+    const ABBR_DEF_RE = /^\*\[([^\]]+)\]:\s*(.+)$/;
+
+    // Pass 1: collect definitions and prune them
+    const children: any[] = (tree as any).children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const node = children[i];
+      if (node.type !== "paragraph") continue;
+      // A defn paragraph contains only text lines matching the pattern.
+      const text = (node.children ?? [])
+        .map((c: any) => (c.type === "text" ? c.value : ""))
+        .join("");
+      const lines = text.split(/\r?\n/);
+      const matched = lines.map((l: string) => l.match(ABBR_DEF_RE));
+      if (matched.every((m: RegExpMatchArray | null) => m)) {
+        for (const m of matched) defs.set(m![1], m![2].trim());
+        children.splice(i, 1);
+      }
+    }
+
+    if (defs.size === 0) return;
+
+    // Pass 2: walk text nodes and split on abbreviation occurrences.
+    // Build a single regex matching any key on word boundaries.
+    const keys = [...defs.keys()].sort((a, b) => b.length - a.length);
+    const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const ABBR_RE = new RegExp(`\\b(${keys.map(escape).join("|")})\\b`, "g");
+
+    visit(tree, "text", (node: any, index: any, parent: any) => {
+      if (index == null || !parent) return;
+      // Don't touch text inside links or code.
+      if (parent.type === "link" || parent.type === "inlineCode") return;
+      const value: string = node.value;
+      ABBR_RE.lastIndex = 0;
+      if (!ABBR_RE.test(value)) return;
+      ABBR_RE.lastIndex = 0;
+
+      const parts: any[] = [];
+      let last = 0;
+      let m: RegExpExecArray | null;
+      while ((m = ABBR_RE.exec(value)) !== null) {
+        if (m.index > last) parts.push({ type: "text", value: value.slice(last, m.index) });
+        parts.push({
+          type: "abbr",
+          abbr: m[1],
+          reference: defs.get(m[1])!,
+          children: [{ type: "text", value: m[1] }],
+        });
+        last = m.index + m[0].length;
+      }
+      if (last < value.length) parts.push({ type: "text", value: value.slice(last) });
+      parent.children.splice(index, 1, ...parts);
+      return [SKIP, index + parts.length];
+    });
+  };
+}
+
 function remarkGemoji() {
   return (tree: Root) => {
     const EMOJI_RE = /:([a-zA-Z0-9_+-]+):/g;
@@ -149,6 +214,8 @@ const pipeline = unified()
   .use(remarkFrontmatter)
   .use(remarkGfm)
   .use(remarkMath)
+  .use(remarkDefinitionList)
+  .use(remarkAbbr)
   .use(remarkMergeInlineHtml)
   .use(remarkMark)
   .use(remarkGemoji)
