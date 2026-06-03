@@ -2,7 +2,7 @@
 
 ![tui-md demo](https://raw.githubusercontent.com/VectorJet/tui-md/main/tui-md.gif)
 
-Markdown rendering components for [OpenTUI](https://github.com/nicholasgasior/opentui) React applications.
+Markdown rendering components for [OpenTUI](https://github.com/anomalyco/opentui.git) React applications.
 
 `tui-md` is a library, not a standalone CLI. It exports a React component that renders rich markdown inside an OpenTUI terminal app — with syntax-highlighted code blocks, LaTeX math, Mermaid diagrams, tables, GFM extensions, and interactive clickable links.
 
