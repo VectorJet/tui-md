@@ -1,6 +1,6 @@
 {
   "name": "tui-md",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -35,7 +35,6 @@
     "remark-github-blockquote-alert": "^2.1.0",
     "remark-math": "^6.0.0",
     "remark-parse": "^11.0.0",
-    "tui-md": "^0.1.0",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0"
   },

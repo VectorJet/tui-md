@@ -22,7 +22,7 @@ interface HtmlInlineNode {
 
 function LinkNode({ node, attrs, theme }: InlineProps) {
   const Link = "a" as any;
-  const linkAttrs = mergeAttrs(attrs, { underline: true, fg: theme.link });
+  const linkAttrs = mergeAttrs(attrs, { fg: theme.link });
 
   return (
     <Link

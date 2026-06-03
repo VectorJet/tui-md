@@ -28,7 +28,7 @@ function ClickableLinkText({ node, theme, onLinkClick }: { node: any; theme: Tui
   const [error, setError] = useState<string | null>(null);
   const renderer = useRenderer();
   const attrs = mergeAttrs(baseAttrs(), {
-    underline: true,
+    underline: isHovered,
     fg: isHovered ? theme.accent : theme.link,
     bg: isHovered ? theme.codeBg : undefined,
   });
@@ -48,11 +48,13 @@ function ClickableLinkText({ node, theme, onLinkClick }: { node: any; theme: Tui
 
         const result = onLinkClick ? await onLinkClick(node.url) : await openUrl(node.url, { renderer });
         if (result && !result.ok) {
-          setError(result.reason === "file-not-found" ? " file not found" : " open failed");
+          setError(result.reason === "file-not-found" ? " file not found" : ` ${result.message || "open failed"}`);
         }
       }}
     >
-      <InlineNode node={node} attrs={attrs} theme={theme} />
+      {node.children.map((child: any, index: number) => (
+        <InlineNode key={index} node={child} attrs={attrs} theme={theme} />
+      ))}
       {error ? <span fg={theme.diffDel} attributes={TextAttributes.NONE}>{error}</span> : null}
     </text>
   );

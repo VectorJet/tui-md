@@ -36,7 +36,7 @@ async function commandExists(command: string) {
   }
 }
 
-function openExternal(target: string) {
+async function openExternal(target: string): Promise<OpenUrlResult> {
   const command =
     process.platform === "darwin" ? "open" :
     process.platform === "win32" ? "cmd" :
@@ -46,11 +46,17 @@ function openExternal(target: string) {
     process.platform === "win32" ? ["/c", "start", "", target] :
     [target];
 
-  execFile(command, args, (err) => {
-    if (err) {
-      console.error(`Failed to open link: ${target}`, err);
-    }
-  });
+  try {
+    await execFileAsync(command, args);
+    return { ok: true };
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return {
+      ok: false,
+      reason: "open-failed",
+      message: `Failed to open link: ${target}${detail ? ` (${detail})` : ""}`,
+    };
+  }
 }
 
 function normalizeFilePath(url: string) {
@@ -197,8 +203,7 @@ export async function openUrl(url: string, options: OpenUrlOptions = {}): Promis
   }
 
   if (/^(https?|mailto):/i.test(url)) {
-    openExternal(url);
-    return { ok: true };
+    return openExternal(url);
   }
 
   const filePath = normalizeFilePath(url);
