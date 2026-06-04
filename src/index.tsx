@@ -9,9 +9,15 @@ export type { TuiMdTheme };
 
 export type TuiMdLinkHandler = (url: string) => void | OpenUrlResult | Promise<void | OpenUrlResult>;
 
+export interface MarkdownStreamingOptions {
+  tailPinDiffs?: boolean;
+  maxDiffLines?: number;
+  maxDiffHunks?: number;
+}
+
 export interface MarkdownProps {
   content: string;
-  streaming?: boolean;
+  streaming?: boolean | MarkdownStreamingOptions;
   theme?: Partial<TuiMdTheme>;
   width?: number | string;
   onLinkClick?: TuiMdLinkHandler;
@@ -26,7 +32,7 @@ export function Markdown({ content, streaming = false, theme: themeOverride, wid
 
   return (
     <box flexDirection="column" width={width as any}>
-      <Walk ast={ast} theme={theme} onLinkClick={onLinkClick} />
+      <Walk ast={ast} theme={theme} onLinkClick={onLinkClick} streaming={streaming} />
     </box>
   );
 }

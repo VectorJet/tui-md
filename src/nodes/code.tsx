@@ -5,10 +5,12 @@ import type { Code } from "mdast";
 interface CodeBlockProps {
   node: Code;
   theme: TuiMdTheme;
+  streaming?: boolean | import("../index").MarkdownStreamingOptions;
 }
 
 import { CodeRenderable, SyntaxStyle, RGBA } from "@opentui/core";
 import { renderMermaidAscii } from "beautiful-mermaid";
+import { truncateDiffByHunk } from "../utils/diff-truncate";
 
 const DEFAULT_SYNTAX_STYLE = SyntaxStyle.fromStyles({
   default: { fg: RGBA.fromHex("#E6EDF3") },
@@ -44,7 +46,7 @@ const DEFAULT_SYNTAX_STYLE = SyntaxStyle.fromStyles({
   operator: { fg: RGBA.fromHex("#79C0FF") },
 });
 
-export function CodeBlock({ node, theme }: CodeBlockProps) {
+export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
   const lang = node.lang ?? "";
   
   if (lang === "mermaid") {
@@ -69,11 +71,25 @@ export function CodeBlock({ node, theme }: CodeBlockProps) {
 
   const isDiff = lang === "diff" || lang === "patch";
   if (isDiff) {
+    let diffStr = node.value;
+    let hiddenLinesText = "";
+
+    const streamOpts = typeof streaming === "object" ? streaming : (streaming ? { tailPinDiffs: true, maxDiffLines: 40, maxDiffHunks: 8 } : null);
+    
+    if (streamOpts?.tailPinDiffs) {
+      const { text, hiddenLines, hiddenHunks } = truncateDiffByHunk(diffStr, streamOpts.maxDiffHunks ?? 8, streamOpts.maxDiffLines ?? 40, { fromTail: true });
+      diffStr = text;
+      if (hiddenHunks > 0 || hiddenLines > 0) {
+        hiddenLinesText = `... (${hiddenLines} more lines, ${hiddenHunks} more hunks hidden above)`;
+      }
+    }
+
     return (
       <box flexDirection="column" width="100%" marginBottom={1} backgroundColor={theme.codeBg} paddingX={1} paddingY={0}>
         <text fg={theme.muted}>{lang}</text>
+        {hiddenLinesText && <text fg={theme.muted}>{hiddenLinesText}</text>}
         <diff 
-          diff={node.value} 
+          diff={diffStr} 
           view="unified" 
           syntaxStyle={DEFAULT_SYNTAX_STYLE}
         />
