@@ -1,6 +1,6 @@
 {
   "name": "tui-md",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -25,6 +25,7 @@
   "dependencies": {
     "beautiful-mermaid": "^1.1.3",
     "hast-util-to-string": "^3.0.1",
+    "image-dimensions": "^2.5.1",
     "rehype-raw": "^7.0.0",
     "remark-abbr": "^1.4.2",
     "remark-definition-list": "^2.0.0",
@@ -33,8 +34,6 @@
     "remark-github-blockquote-alert": "^2.1.0",
     "remark-math": "^6.0.0",
     "remark-parse": "^11.0.0",
-    "supports-terminal-graphics": "^0.1.0",
-    "terminal-image": "^4.3.0",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0"
   },

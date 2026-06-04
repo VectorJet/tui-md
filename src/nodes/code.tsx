@@ -9,6 +9,7 @@ interface CodeBlockProps {
 }
 
 import { CodeRenderable, SyntaxStyle, RGBA } from "@opentui/core";
+import type { MouseEvent, ScrollBoxRenderable } from "@opentui/core";
 import { renderMermaidAscii } from "beautiful-mermaid";
 import { truncateDiffByHunk } from "../utils/diff-truncate";
 
@@ -46,6 +47,102 @@ const DEFAULT_SYNTAX_STYLE = SyntaxStyle.fromStyles({
   operator: { fg: RGBA.fromHex("#79C0FF") },
 });
 
+const MAX_CODE_BLOCK_HEIGHT = 18;
+
+function getBlockMetrics(content: string, extraLines = 0) {
+  const lines = content.split("\n");
+  const lineCount = Math.max(1, lines.length + extraLines);
+  const maxLineWidth = Math.max(1, ...lines.map(line => line.length));
+  const viewportWidth = Math.max(1, (process.stdout.columns || 80) - 6);
+
+  return {
+    height: Math.min(MAX_CODE_BLOCK_HEIGHT, lineCount),
+    contentWidth: maxLineWidth,
+    scrollX: maxLineWidth > viewportWidth,
+    scrollY: lineCount > MAX_CODE_BLOCK_HEIGHT,
+  };
+}
+
+function ScrollableBlock({ contentWidth, height, scrollX, scrollY, children }: {
+  contentWidth?: number;
+  height: number;
+  scrollX: boolean;
+  scrollY: boolean;
+  children: React.ReactNode;
+}) {
+  const scrollRef = React.useRef<ScrollBoxRenderable>(null);
+  const dragStartRef = React.useRef<{ x: number; y: number; scrollLeft: number; scrollTop: number } | null>(null);
+
+  if (!scrollX && !scrollY) {
+    return (
+      <box flexDirection="column" width={contentWidth}>
+        {children}
+      </box>
+    );
+  }
+
+  return (
+    <scrollbox
+      ref={scrollRef}
+      width="100%"
+      height={height}
+      scrollX={scrollX}
+      scrollY={scrollY}
+      focusable={true}
+      viewportCulling={true}
+      verticalScrollbarOptions={{ visible: false }}
+      onMouseDown={(event: MouseEvent) => {
+        event.stopPropagation();
+        event.preventDefault();
+        const scrollbox = scrollRef.current;
+        if (!scrollbox) return;
+        dragStartRef.current = {
+          x: event.x,
+          y: event.y,
+          scrollLeft: scrollbox.scrollLeft,
+          scrollTop: scrollbox.scrollTop,
+        };
+      }}
+      onMouseDrag={(event: MouseEvent) => {
+        event.stopPropagation();
+        event.preventDefault();
+        const dragStart = dragStartRef.current;
+        const scrollbox = scrollRef.current;
+        if (!dragStart || !scrollbox) return;
+
+        scrollbox.scrollTo({
+          x: dragStart.scrollLeft + dragStart.x - event.x,
+          y: dragStart.scrollTop + dragStart.y - event.y,
+        });
+      }}
+      onMouseUp={(event: MouseEvent) => {
+        event.stopPropagation();
+        dragStartRef.current = null;
+      }}
+      onMouseDragEnd={(event: MouseEvent) => {
+        event.stopPropagation();
+        dragStartRef.current = null;
+      }}
+      onMouseScroll={(event: MouseEvent) => {
+        event.stopPropagation();
+        event.preventDefault();
+        const scrollbox = scrollRef.current;
+        if (!scrollbox || !event.scroll) return;
+
+        const delta = event.scroll.delta || 1;
+        if (event.scroll.direction === "left") scrollbox.scrollBy({ x: -delta, y: 0 });
+        if (event.scroll.direction === "right") scrollbox.scrollBy({ x: delta, y: 0 });
+        if (event.scroll.direction === "up") scrollbox.scrollBy({ x: 0, y: -delta });
+        if (event.scroll.direction === "down") scrollbox.scrollBy({ x: 0, y: delta });
+      }}
+    >
+      <box flexDirection="column" width={contentWidth}>
+        {children}
+      </box>
+    </scrollbox>
+  );
+}
+
 export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
   const lang = node.lang ?? "";
   
@@ -56,14 +153,17 @@ export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
     } catch (e: any) {
       output = `[Mermaid render error]: ${e.message}\n\n${node.value}`;
     }
+    const metrics = getBlockMetrics(output);
     
     return (
       <box flexDirection="column" width="100%" marginBottom={1}>
         <text fg={theme.muted}>mermaid</text>
         <box flexDirection="column" width="100%" paddingX={1} paddingY={1} borderStyle="rounded" borderColor={theme.border}>
-          {output.split("\n").map((line, i) => (
-            <text key={i} fg={theme.text}>{line}</text>
-          ))}
+          <ScrollableBlock {...metrics}>
+            {output.split("\n").map((line, i) => (
+              <text key={i} fg={theme.text} flexShrink={0}>{line}</text>
+            ))}
+          </ScrollableBlock>
         </box>
       </box>
     );
@@ -83,16 +183,19 @@ export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
         hiddenLinesText = `... (${hiddenLines} more lines, ${hiddenHunks} more hunks hidden above)`;
       }
     }
+    const metrics = getBlockMetrics(diffStr, hiddenLinesText ? 1 : 0);
 
     return (
       <box flexDirection="column" width="100%" marginBottom={1} backgroundColor={theme.codeBg} paddingX={1} paddingY={0}>
         <text fg={theme.muted}>{lang}</text>
         {hiddenLinesText && <text fg={theme.muted}>{hiddenLinesText}</text>}
-        <diff 
-          diff={diffStr} 
-          view="unified" 
-          syntaxStyle={DEFAULT_SYNTAX_STYLE}
-        />
+        <ScrollableBlock {...metrics}>
+          <diff
+            diff={diffStr}
+            view="unified"
+            syntaxStyle={DEFAULT_SYNTAX_STYLE}
+          />
+        </ScrollableBlock>
       </box>
     );
   }
@@ -100,12 +203,14 @@ export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
   return (
     <box flexDirection="column" width="100%" marginBottom={1} backgroundColor={theme.codeBg} paddingX={1} paddingY={0}>
       {!!lang && <text fg={theme.muted}>{lang}</text>}
-      <code
-        content={node.value}
-        filetype={lang}
-        syntaxStyle={DEFAULT_SYNTAX_STYLE}
-        conceal={false}
-      />
+      <ScrollableBlock {...getBlockMetrics(node.value)}>
+        <code
+          content={node.value}
+          filetype={lang}
+          syntaxStyle={DEFAULT_SYNTAX_STYLE}
+          conceal={false}
+        />
+      </ScrollableBlock>
     </box>
   );
 }

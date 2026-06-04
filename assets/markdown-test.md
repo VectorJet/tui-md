@@ -229,11 +229,11 @@ See the [README](README.md) for setup instructions.
 
 <https://example.com>
 
-## 9. Images (Sixel Rendering)
+## 9. Images (Terminal Cell Rendering)
 
 ![Sample Image](https://picsum.photos/400/300 "Random placeholder image")
 
-Inline images are now natively downloaded and converted to sixel escape sequences (via `terminal-image`) when supported by the terminal.
+Inline images are downloaded and rendered as OpenTUI-contained terminal cell art via `chafa`.
 
 ## 10. Tables
 
