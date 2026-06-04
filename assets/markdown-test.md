@@ -126,6 +126,53 @@ createServer(handler).listen(3000, () => {
  }
 ```
 
+### Advanced Streaming Diffs (Truncation Example)
+
+When `streaming` is enabled and `tailPinDiffs` is active, large diffs will automatically truncate older hunks and lines to focus on the active tail.
+
+```diff
+@@ -1,5 +1,5 @@
+-const oldVar = 1;
+-const oldVar2 = 2;
+-const oldVar3 = 3;
+-const oldVar4 = 4;
+-const oldVar5 = 5;
++const newVar = 1;
++const newVar2 = 2;
++const newVar3 = 3;
++const newVar4 = 4;
++const newVar5 = 5;
+@@ -10,5 +10,5 @@
+-const a = 1;
+-const b = 2;
+-const c = 3;
+-const d = 4;
+-const e = 5;
++const a = "a";
++const b = "b";
++const c = "c";
++const d = "d";
++const e = "e";
+@@ -20,5 +20,5 @@
+-function foo() {
+-  return false;
+-}
++function foo() {
++  return true;
++}
+@@ -30,5 +30,5 @@
+-console.log('old');
+-console.log('very old');
+-console.log('ancient');
+-console.log('obsolete');
+-console.log('removed');
++console.log('new');
++console.log('very new');
++console.log('modern');
++console.log('current');
++console.log('added');
+```
+
 ### Indented Code Block
 
     def fibonacci(n):
@@ -182,6 +229,12 @@ See the [README](README.md) for setup instructions.
 
 <https://example.com>
 
+## 9. Images (Sixel Rendering)
+
+![Sample Image](https://picsum.photos/400/300 "Random placeholder image")
+
+Inline images are now natively downloaded and converted to sixel escape sequences (via `terminal-image`) when supported by the terminal.
+
 ## 10. Tables
 
 | Left-aligned | Center-aligned | Right-aligned |
@@ -228,7 +281,7 @@ The HTML specification is maintained by the W3C.
 *[HTML]: Hyper Text Markup Language
 *[W3C]: World Wide Web Consortium
 
-## 14. Math (LaTeX via KaTeX)
+## 14. Math (LaTeX via TeXicode)
 
 ### Inline Math
 
@@ -354,6 +407,88 @@ $$
 | Pythagorean | `$a^2 + b^2 = c^2$` | $a^2 + b^2 = c^2$ |
 | Euler | `$e^{i\pi} + 1 = 0$` | $e^{i\pi} + 1 = 0$ |
 | Golden ratio | `$\varphi = \frac{1+\sqrt{5}}{2}$` | $\varphi = \frac{1+\sqrt{5}}{2}$ |
+
+### Extended Math Symbols (Sm category)
+
+Negated relations: $a \nleq b$, $c \ngeq d$, $x \nless y$, $u \ngtr v$, $p \nmid q$, $r \nparallel s$, $A \nsubseteq B$, $C \nsupseteq D$, $\alpha \nsim \beta$, $\gamma \ncong \delta$.
+
+Negated arrows and implications: $P \nrightarrow Q$, $R \nleftarrow S$, $A \nleftrightarrow B$, $X \nRightarrow Y$, $\phi \nLeftrightarrow \psi$.
+
+Strict subset variants: $A \subsetneq B \subseteq C$ and $D \supsetneqq E \supseteq F$, with $\Subset$ and $\Supset$ for double-containment.
+
+Ordering nuances: $x \lneq y \lneqq z \lnsim w \lnapprox v$ versus $a \gneq b \gneqq c \gnsim d \gnapprox e$, and slanted forms $p \leqslant q \geqslant r$, $\eqslantless$, $\eqslantgtr$.
+
+Equivalence and approximation: $f \approxeq g$, $h \thicksim k$, $u \backsim v$, $\eqsim$, $\bumpeq$, $\Bumpeq$, $\circeq$, $\triangleq$, $\doteqdot$, $\risingdotseq$, $\fallingdotseq$.
+
+Order theory: $a \preccurlyeq b \succcurlyeq c$, $x \precsim y \succsim z$, $p \precapprox q \succapprox r$, and the negated $\nprec$, $\nsucc$, $\precnsim$, $\succnsim$, $\precnapprox$, $\succnapprox$, $\precneqq$, $\succneqq$.
+
+Logic and turnstiles: $\Gamma \vDash \phi$, $\Delta \Vdash \psi$, $\Sigma \Vvdash \chi$, with negations $\nvdash$, $\nvDash$, $\nVdash$, $\nVDash$.
+
+Binary operators (boxes and circles): $a \boxplus b \boxminus c \boxtimes d \boxdot e$, $x \oplus y \ominus z$, $\circledast$, $\circledcirc$, $\circleddash$. Set ops: $A \Cap B$, $C \Cup D$, $E \smallsetminus F$, $G \uplus H$.
+
+Semidirect and curly products: $H \ltimes K \rtimes L$, $\leftthreetimes$, $\rightthreetimes$, $\curlywedge$, $\curlyvee$, plus $\divideontimes$, $\dotplus$, $\centerdot$, $\intercal$, $\barwedge$, $\veebar$, $\doublebarwedge$.
+
+Triangle relations: $H \vartriangleleft K \vartriangleright L$, $\trianglelefteq$, $\trianglerighteq$, with negations $\ntriangleleft$, $\ntriangleright$, $\ntrianglelefteq$, $\ntrianglerighteq$, plus $\blacklozenge$.
+
+Long arrows and maps: $A \Longrightarrow B \Longleftarrow C \Longleftrightarrow D$, $\twoheadrightarrow$, $\rightarrowtail$, $\multimap$, $\origof$, $\imageof$.
+
+Very-much and triple relations: $\epsilon \lll \delta \ll \alpha \ggg \beta$, $\lessdot$, $\gtrdot$, $\lessgtr$, $\gtrless$, $\lesseqgtr$, $\gtreqless$, $\lesseqqgtr$, $\gtreqqless$.
+
+Curly equality variants: $a \curlyeqprec b \curlyeqsucc c$, $\between$, $\pitchfork$, $\backepsilon$, $\varpropto$, $\shortmid$, $\shortparallel$.
+
+Quantifier and set markers: $\nexists x \in S$, $\varnothing \neq \{\,\}$, $\measuredangle$, $\sphericalangle$, plus the (in)famous $\Game$.
+
+Block — N-ary big operators side by side:
+
+$$
+\bigcap_{i \in I} A_i \;\subseteq\; \bigcup_{j \in J} B_j \;\subseteq\; \biguplus_{k} C_k
+$$
+
+$$
+\bigvee_{n=1}^{N} p_n \;\equiv\; \bigwedge_{n=1}^{N} \neg q_n
+$$
+
+$$
+\bigotimes_{i=1}^{r} V_i \;\;\cong\;\; \bigoplus_{j=1}^{s} W_j \;\;\oplus\;\; \bigodot_{k=1}^{t} U_k
+$$
+
+$$
+\bigsqcup_{\alpha \in A} X_\alpha \;=\; \coprod_{\alpha \in A} X_\alpha
+$$
+
+Block — Surface and volume integrals:
+
+$$
+\oiint_{\partial V} \mathbf{F} \cdot d\mathbf{A} \;=\; \iiint_V (\nabla \cdot \mathbf{F}) \, dV
+$$
+
+$$
+\oiiint_{\partial W} \omega \;=\; \int_W d\omega
+$$
+
+Block — Negated relations in formulas:
+
+$$
+\forall n \in \mathbb{N}: \; n \nmid 0 \;\Longrightarrow\; n \not\equiv 0 \pmod n
+$$
+
+$$
+A \subsetneq B \;\wedge\; B \subsetneq C \;\Longrightarrow\; A \subsetneq C
+$$
+
+Block — Order theory chain:
+
+$$
+a \preccurlyeq b \preceq c \prec d \nprec e \npreceq f \precnsim g \precnapprox h
+$$
+
+Block — Moustache delimiters and shortcuts:
+
+$$
+\lmoustache \frac{x^2 + 1}{x - 1} \rmoustache \;\;\text{vs.}\;\; \langle \phi \mid \psi \rangle
+$$
+
+Inline ASCII aliases for `<` and `>`: $a \lt b \lt c$ and $x \gt y \gt z$, plus `\cdotp` for a low-baseline dot: $1 \cdotp 2 \cdotp 3$.
 
 
 ## 15. Admonitions / Callouts (GFM-style with blockquote extension)
