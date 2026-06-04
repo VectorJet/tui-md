@@ -153,7 +153,7 @@ When `streaming` is enabled and `tailPinDiffs` is active, large diffs will autom
 +const c = "c";
 +const d = "d";
 +const e = "e";
-@@ -20,5 +20,5 @@
+@@ -20,3 +20,3 @@
 -function foo() {
 -  return false;
 -}

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import terminalImage from "terminal-image";
+import supportsTerminalGraphics from "supports-terminal-graphics";
 import type { TuiMdTheme } from "../theme";
 import { TextAttributes } from "@opentui/core";
 
@@ -11,6 +12,9 @@ export function ImageBlock({ node, theme }: any) {
     let active = true;
     async function load() {
       try {
+        if (!supportsTerminalGraphics.stdout.kitty && !supportsTerminalGraphics.stdout.iterm2 && !supportsTerminalGraphics.stdout.sixel) {
+          throw new Error("not supported");
+        }
         const res = await fetch(node.url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const buf = await res.arrayBuffer();
@@ -26,6 +30,13 @@ export function ImageBlock({ node, theme }: any) {
   }, [node.url]);
 
   if (error) {
+    if (error === "not supported") {
+      return (
+        <box flexDirection="row" width="100%" marginBottom={1} borderStyle="rounded" borderColor={theme.muted}>
+          <text fg={theme.muted}>[Image: {node.alt || node.url} - (Not supported on this terminal)]</text>
+        </box>
+      );
+    }
     return (
       <box flexDirection="row" width="100%" marginBottom={1} borderStyle="rounded" borderColor={theme.diffDel || "#ff0000"}>
         <text fg={theme.diffDel || "#ff0000"}>[Image: {node.alt || "Broken"} - {error}]</text>

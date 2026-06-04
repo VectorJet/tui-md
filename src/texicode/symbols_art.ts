@@ -1,6 +1,10 @@
-/** Port of TeXicode symbols_art.py — symbol glyph mappings. */
+/** Port of TeXicode symbols_art.py — symbol glyph mappings.
+ *  Core LaTeX/AMS commands are defined here; an extended Sm-category set
+ *  is merged in from `./symbols_extra` at the bottom of this file. */
 
-export const symbols: Record<string, string[]> = {
+import { symbolsExtra } from "./symbols_extra";
+
+const symbolsCore: Record<string, string[]> = {
   // self replacement commands:
   "_": ["_"], "$": ["$"], "{": ["{"], "}": ["}"], "#": ["#"], "&": ["&"],
   "arccos": ["a", "r", "c", "c", "o", "s"],
@@ -117,3 +121,7 @@ export const symbols: Record<string, string[]> = {
   "mathparagraph": ["¶"], "mathsection": ["§"], "mathsterling": ["£"],
   "mathunderscore": ["_"],
 };
+
+// Merge the extended Sm-category set. Core wins on key collisions so any
+// glyph tuned for the renderer takes precedence over the auto-generated one.
+export const symbols: Record<string, string[]> = { ...symbolsExtra, ...symbolsCore };

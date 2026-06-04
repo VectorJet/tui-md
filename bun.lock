@@ -15,6 +15,7 @@
         "remark-github-blockquote-alert": "^2.1.0",
         "remark-math": "^6.0.0",
         "remark-parse": "^11.0.0",
+        "supports-terminal-graphics": "^0.1.0",
         "terminal-image": "^4.3.0",
         "unified": "^11.0.5",
         "unist-util-visit": "^5.1.0",
