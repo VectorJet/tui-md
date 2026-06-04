@@ -49,6 +49,10 @@ const DEFAULT_SYNTAX_STYLE = SyntaxStyle.fromStyles({
 
 const MAX_CODE_BLOCK_HEIGHT = 18;
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
 function getBlockMetrics(content: string, extraLines = 0) {
   const lines = content.split("\n");
   const lineCount = Math.max(1, lines.length + extraLines);
@@ -124,16 +128,27 @@ function ScrollableBlock({ contentWidth, height, scrollX, scrollY, children }: {
         dragStartRef.current = null;
       }}
       onMouseScroll={(event: MouseEvent) => {
-        event.stopPropagation();
-        event.preventDefault();
         const scrollbox = scrollRef.current;
         if (!scrollbox || !event.scroll) return;
 
         const delta = event.scroll.delta || 1;
-        if (event.scroll.direction === "left") scrollbox.scrollBy({ x: -delta, y: 0 });
-        if (event.scroll.direction === "right") scrollbox.scrollBy({ x: delta, y: 0 });
-        if (event.scroll.direction === "up") scrollbox.scrollBy({ x: 0, y: -delta });
-        if (event.scroll.direction === "down") scrollbox.scrollBy({ x: 0, y: delta });
+        const maxScrollLeft = Math.max(0, scrollbox.scrollWidth - scrollbox.viewport.width);
+        const maxScrollTop = Math.max(0, scrollbox.scrollHeight - scrollbox.viewport.height);
+        let nextScrollLeft = scrollbox.scrollLeft;
+        let nextScrollTop = scrollbox.scrollTop;
+
+        if (event.scroll.direction === "left") nextScrollLeft = clamp(scrollbox.scrollLeft - delta, 0, maxScrollLeft);
+        if (event.scroll.direction === "right") nextScrollLeft = clamp(scrollbox.scrollLeft + delta, 0, maxScrollLeft);
+        if (event.scroll.direction === "up") nextScrollTop = clamp(scrollbox.scrollTop - delta, 0, maxScrollTop);
+        if (event.scroll.direction === "down") nextScrollTop = clamp(scrollbox.scrollTop + delta, 0, maxScrollTop);
+
+        if (nextScrollLeft === scrollbox.scrollLeft && nextScrollTop === scrollbox.scrollTop) {
+          return;
+        }
+
+        event.stopPropagation();
+        event.preventDefault();
+        scrollbox.scrollTo({ x: nextScrollLeft, y: nextScrollTop });
       }}
     >
       <box flexDirection="column" width={contentWidth}>
