@@ -7,6 +7,7 @@ import { TextAttributes } from "@opentui/core";
 import { useRenderer } from "@opentui/react";
 import { openUrl } from "../utils/open";
 import type { TuiMdLinkHandler } from "../index";
+import { ImageBlock } from "./image";
 
 type DefListData = { type: "defList"; children: DefListChild[] };
 type DefListChild =
@@ -91,6 +92,9 @@ export function BlockNode({ node, theme, depth = 0, onLinkClick }: BlockProps): 
         } else if (child.type === "link") {
           flush();
           groups.push(<ClickableLinkText key={groups.length} node={child as any} theme={theme} onLinkClick={onLinkClick} />);
+        } else if (child.type === "image") {
+          flush();
+          groups.push(<ImageBlock key={groups.length} node={child as any} theme={theme} />);
         } else {
           currentGroup.push(child);
         }
