@@ -14,6 +14,21 @@ bun add tui-md @opentui/core @opentui/react react
 
 `@opentui/core`, `@opentui/react`, and `react` are peer dependencies, so your app controls their versions.
 
+## Features
+
+- CommonMark plus GFM tables, task lists, strikethrough, autolinks, footnotes, front matter, math, definition lists, abbreviations, gemoji, and GitHub alert blockquotes.
+- Syntax-highlighted fenced code blocks using OpenTUI's native `<code>` component.
+- Diff and patch blocks rendered with OpenTUI's unified diff view.
+- Mermaid diagrams rendered as terminal-friendly ASCII art through `beautiful-mermaid`.
+- LaTeX display and inline math rendered as Unicode art without an external binary.
+- Images rendered as OpenTUI-contained terminal cell art through `chafa`, avoiding sixel/graphics-layer leaks into terminal scrollback.
+- Wide code, Mermaid, diff, and table blocks get contained scrolling instead of polluting the main page layout.
+- Inline overflow blocks support mouse wheel and click-drag scrolling, then hand scrolling back to the main page when the block reaches an edge.
+- Wide tables keep measured natural column widths and scroll horizontally only; vertical mouse wheel movement continues to scroll the document.
+- Clickable links with hover styling, built-in open handling, file path support, and custom `onLinkClick` override.
+- Theme tokens for text, headings, links, code, math, tables, alerts, keyboard keys, highlights, and diffs.
+- Streaming mode for live markdown output with an appended block cursor.
+
 ## Basic Usage
 
 ```tsx
@@ -121,7 +136,7 @@ import {
 
 ---
 
-## Rendering Features
+## Rendering Details
 
 ### Syntax-highlighted code blocks
 
@@ -159,9 +174,21 @@ Results are cached in memory so re-renders of the same expression are free.
 
 ### Tables
 
-Tables are rendered with full Unicode box-drawing borders (`┌─┬─┐ │ ├─┼─┤ └─┴─┘`). Column widths are automatically measured by scanning cell content and then scaled proportionally when the table is wider than the terminal.
+Tables are rendered with full Unicode box-drawing borders (`┌─┬─┐ │ ├─┼─┤ └─┴─┘`). Column widths are automatically measured by scanning cell content. If a table is wider than the terminal, it keeps its natural width and becomes horizontally scrollable instead of squeezing columns.
 
 Column alignment (`left`, `center`, `right`) from the GFM alignment marker is respected.
+
+Wide tables use horizontal-only mouse wheel and click-drag scrolling. Vertical wheel events continue to the page scroll, and horizontal scrolling hands back to the parent when the table reaches either edge.
+
+### Images
+
+Images are downloaded and rendered as terminal cell art via `chafa --format=symbols --colors=full`. The output is parsed into OpenTUI text spans, so images stay inside the normal render tree and do not leave sixel/terminal-graphics artifacts behind when the document scrolls or rerenders.
+
+If `chafa` is not installed, `tui-md` renders an inline error message instead of failing the whole markdown render.
+
+### Contained overflow scrolling
+
+Wide or tall fenced code, Mermaid, and diff blocks are rendered inside contained OpenTUI scrollboxes. Mouse wheel and click-drag gestures scroll the inline block while it can move; once the block reaches the top, bottom, left, or right edge, wheel events bubble back to the main document scrollbox.
 
 ### GitHub alerts
 
