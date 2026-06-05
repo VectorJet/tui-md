@@ -116,6 +116,52 @@ createServer(handler).listen(3000, () => {
 });
 ```
 
+### Multi-Language Syntax Highlighting (Refractor)
+
+Because `tui-md` now natively uses Refractor (PrismJS), over 290 languages are supported without needing to configure WASM grammars.
+
+**Bash Script:**
+```bash
+#!/bin/bash
+echo "Deploying application..."
+for file in dist/*; do
+  tar -czf "${file}.tar.gz" "$file"
+done
+```
+
+**Rust:**
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5];
+    let sum: i32 = numbers.iter().sum();
+    println!("The total sum is: {}", sum);
+}
+```
+
+**Go:**
+```go
+package main
+
+import "fmt"
+
+func Worker(id int, jobs <-chan int, results chan<- int) {
+    for j := range jobs {
+        fmt.Println("worker", id, "started  job", j)
+        results <- j * 2
+    }
+}
+```
+
+**SQL:**
+```sql
+SELECT users.name, COUNT(orders.id) AS total_orders
+FROM users
+LEFT JOIN orders ON users.id = orders.user_id
+WHERE users.active = true
+GROUP BY users.id
+HAVING total_orders > 5;
+```
+
 ### Fenced Code Block with Diff
 
 ```diff

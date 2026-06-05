@@ -84,8 +84,12 @@ export function InlineNode({ node, attrs, theme }: InlineProps): React.ReactNode
       return <br />;
 
     case "html":
-      // Unmerged stray html tokens (open without close, comments, etc.) — drop
-      return null;
+      // Unmerged stray html tokens (open without close, comments, etc.)
+      return (
+        <span fg={theme.muted} attributes={TextAttributes.NONE}>
+          {(node as any).value}
+        </span>
+      );
 
     case "htmlInline" as any:
       return <HtmlInline node={node as HtmlInlineNode} attrs={attrs} theme={theme} />;

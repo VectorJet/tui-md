@@ -209,6 +209,37 @@ function remarkGemoji() {
   };
 }
 
+/**
+ * Resolves linkReference and imageReference nodes into standard link and image nodes,
+ * using the definition nodes present in the document.
+ */
+function remarkResolveLinks() {
+  return (tree: Root) => {
+    const definitions = new Map<string, any>();
+    
+    visit(tree, 'definition', (node: any, index: any, parent: any) => {
+      if (index == null || !parent) return;
+      definitions.set((node.identifier || '').toUpperCase(), node);
+      // Do not remove the definition so it can be rendered by BlockNode
+    });
+
+    visit(tree, ['linkReference', 'imageReference'], (node: any) => {
+      const def = definitions.get((node.identifier || '').toUpperCase());
+      if (def) {
+        if (node.type === 'linkReference') {
+          node.type = 'link';
+          node.url = def.url;
+          node.title = def.title;
+        } else if (node.type === 'imageReference') {
+          node.type = 'image';
+          node.url = def.url;
+          node.title = def.title;
+        }
+      }
+    });
+  };
+}
+
 const pipeline = unified()
   .use(remarkParse)
   .use(remarkFrontmatter)
@@ -219,7 +250,8 @@ const pipeline = unified()
   .use(remarkMergeInlineHtml)
   .use(remarkMark)
   .use(remarkGemoji)
-  .use(remarkAlert);
+  .use(remarkAlert)
+  .use(remarkResolveLinks);
 
 /**
  * Parse a markdown string into an mdast Root node.

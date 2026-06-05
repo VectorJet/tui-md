@@ -35,6 +35,6 @@ function Node({ node, theme, onLinkClick, streaming }: { node: Content; theme: T
       return <MathBlock value={(node as any).value} theme={theme} />;
     // All block-level nodes handled in blocks.tsx
     default:
-      return <BlockNode node={node as any} theme={theme} depth={0} onLinkClick={onLinkClick} />;
+      return <BlockNode node={node as any} theme={theme} depth={0} onLinkClick={onLinkClick} streaming={streaming} />;
   }
 }

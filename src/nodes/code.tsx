@@ -158,6 +158,51 @@ function ScrollableBlock({ contentWidth, height, scrollX, scrollY, children }: {
   );
 }
 
+import { refractor } from "refractor";
+
+function getColorForClass(className: string, theme: TuiMdTheme): string {
+  const cn = className.replace(/^token\s+/, "");
+  // Use hardcoded colors matching the original OpenTUI syntax style
+  if (cn.includes("keyword")) return "#FF7B72";
+  if (cn.includes("string")) return "#A5D6FF";
+  if (cn.includes("comment")) return "#8B949E";
+  if (cn.includes("number") || cn.includes("boolean")) return "#79C0FF";
+  if (cn.includes("function")) return "#D2A8FF";
+  if (cn.includes("class-name") || cn.includes("type")) return "#FFA657";
+  if (cn.includes("property")) return "#79C0FF";
+  if (cn.includes("operator")) return "#79C0FF";
+  if (cn.includes("punctuation")) return "#E6EDF3";
+  if (cn.includes("variable")) return "#E6EDF3";
+  if (cn.includes("builtin")) return "#D2A8FF";
+  if (cn.includes("constant")) return "#79C0FF";
+  return theme.code ?? "#E6EDF3";
+}
+
+type Token = { text: string; color: string };
+
+function flattenAST(nodes: any[], currentColor: string, lines: Token[][], theme: TuiMdTheme) {
+  for (const node of nodes) {
+    if (node.type === "text") {
+      const parts = node.value.split("\n");
+      for (let i = 0; i < parts.length; i++) {
+        if (i > 0) {
+          lines.push([]); // new line
+        }
+        if (parts[i]) {
+          lines[lines.length - 1].push({ text: parts[i], color: currentColor });
+        }
+      }
+    } else if (node.type === "element") {
+      const classNames = (node.properties?.className || []) as string[];
+      let nextColor = currentColor;
+      if (classNames.length > 0) {
+        nextColor = getColorForClass(classNames[classNames.length - 1], theme);
+      }
+      flattenAST(node.children || [], nextColor, lines, theme);
+    }
+  }
+}
+
 export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
   const lang = node.lang ?? "";
   
@@ -215,16 +260,37 @@ export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
     );
   }
 
+  let lines: Token[][] = [[]];
+  const defaultColor = theme.code ?? "#E6EDF3";
+
+  if (lang && refractor.registered(lang)) {
+    try {
+      const ast = refractor.highlight(node.value, lang);
+      flattenAST(ast.children, defaultColor, lines, theme);
+    } catch (e) {
+      flattenAST([{ type: "text", value: node.value }], defaultColor, lines, theme);
+    }
+  } else {
+    flattenAST([{ type: "text", value: node.value }], defaultColor, lines, theme);
+  }
+
   return (
     <box flexDirection="column" width="100%" marginBottom={1} backgroundColor={theme.codeBg} paddingX={1} paddingY={0}>
       {!!lang && <text fg={theme.muted}>{lang}</text>}
       <ScrollableBlock {...getBlockMetrics(node.value)}>
-        <code
-          content={node.value}
-          filetype={lang}
-          syntaxStyle={DEFAULT_SYNTAX_STYLE}
-          conceal={false}
-        />
+        <box flexDirection="column">
+          {lines.map((line, i) => (
+            <box key={i} flexDirection="row" flexShrink={0}>
+              {line.length === 0 ? (
+                <text fg={defaultColor}>{" "}</text>
+              ) : (
+                line.map((token, j) => (
+                  <text key={j} fg={token.color}>{token.text}</text>
+                ))
+              )}
+            </box>
+          ))}
+        </box>
       </ScrollableBlock>
     </box>
   );
