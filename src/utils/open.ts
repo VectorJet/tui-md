@@ -136,7 +136,7 @@ async function openWithTerminalEditor(filePath: string) {
 
       const args =
         terminal === "konsole" ? ["-e", editor, filePath] :
-        terminal === "xfce4-terminal" ? ["--command", `${editor} ${JSON.stringify(filePath)}`] :
+        terminal === "xfce4-terminal" ? ["-x", editor, filePath] :
         terminal === "alacritty" || terminal === "kitty" || terminal === "wezterm" ? ["-e", editor, filePath] :
         ["-e", editor, filePath];
 
