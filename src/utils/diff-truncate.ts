@@ -61,6 +61,32 @@ function parseDiffSegments(lines: string[]): DiffSegment[] {
   return segments;
 }
 
+function getTruncatedContextLines(
+  seg: DiffSegment,
+  allowedLines: number,
+  isBeforeChange?: boolean,
+  isAfterChange?: boolean
+): string[] {
+  if (isBeforeChange && isAfterChange) {
+    const half = Math.ceil(allowedLines / 2);
+    if (seg.lines.length > allowedLines) {
+      return [
+        ...seg.lines.slice(0, half),
+        seg.lines[0].replace(/^(\s*\d*\s*).*/, "$1..."),
+        ...seg.lines.slice(-half)
+      ];
+    }
+    return [...seg.lines];
+  }
+  if (isBeforeChange) {
+    return [...seg.lines.slice(-allowedLines)];
+  }
+  if (isAfterChange) {
+    return [...seg.lines.slice(0, allowedLines)];
+  }
+  return [...seg.lines.slice(0, Math.min(allowedLines, 2))];
+}
+
 export function truncateDiffByHunk(
   diffText: string,
   maxHunks: number,
@@ -140,22 +166,7 @@ export function truncateDiffByHunk(
         const isBeforeChange = segments[i + 1]?.isChange;
         const isAfterChange = segments[i - 1]?.isChange;
 
-        if (isBeforeChange && isAfterChange) {
-          const half = Math.ceil(allowedLines / 2);
-          if (seg.lines.length > allowedLines) {
-            kept.push(...seg.lines.slice(0, half));
-            kept.push(seg.lines[0].replace(/^(\s*\d*\s*).*/, "$1..."));
-            kept.push(...seg.lines.slice(-half));
-          } else {
-            kept.push(...seg.lines);
-          }
-        } else if (isBeforeChange) {
-          kept.push(...seg.lines.slice(-allowedLines));
-        } else if (isAfterChange) {
-          kept.push(...seg.lines.slice(0, allowedLines));
-        } else {
-          kept.push(...seg.lines.slice(0, Math.min(allowedLines, 2)));
-        }
+        kept.push(...getTruncatedContextLines(seg, allowedLines, isBeforeChange, isAfterChange));
       }
     }
   }
