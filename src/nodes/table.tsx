@@ -104,15 +104,24 @@ export function TableBlock({ node, theme }: TableProps) {
 
   const measureRow = (row: TableRow) => {
     row.children.forEach((cell, ci) => {
-      const getRawText = (n: any): string => {
-        if (n.type === "text") return n.value || "";
-        if (n.type === "inlineCode") return ` ${n.value || ""} `; // Matches {` ${(node as any).value} `}
-        if (n.children) return n.children.map(getRawText).join("");
-        return "";
+      let len = 0;
+      const calcRawTextLength = (n: any) => {
+        if (n.type === "text") {
+          if (n.value) len += n.value.length;
+        } else if (n.type === "inlineCode") {
+          len += (n.value ? n.value.length : 0) + 2; // Matches {` ${(node as any).value} `}
+        } else if (n.children) {
+          for (let i = 0; i < n.children.length; i++) {
+            calcRawTextLength(n.children[i]);
+          }
+        }
       };
       
-      const text = (cell as TableCell).children.map(getRawText).join("");
-      colMax[ci] = Math.max(colMax[ci], text.length + 2); // +2 for cell padding
+      const children = (cell as TableCell).children;
+      for (let i = 0; i < children.length; i++) {
+        calcRawTextLength(children[i]);
+      }
+      colMax[ci] = Math.max(colMax[ci], len + 2); // +2 for cell padding
     });
   };
 

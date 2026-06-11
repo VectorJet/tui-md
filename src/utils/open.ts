@@ -24,7 +24,9 @@ function execFileAsync(command: string, args: string[]) {
   });
 }
 
-const commandExistsCache = new Map<string, Promise<boolean>>();
+async function commandExists(command: string) {
+  const checker = process.platform === "win32" ? "where" : "sh";
+  const args = process.platform === "win32" ? [command] : ["-lc", `command -v "$1"`, "--", command];
 
 function commandExists(command: string) {
   if (commandExistsCache.has(command)) return commandExistsCache.get(command)!;
@@ -147,8 +149,11 @@ async function openWithTerminalEditor(filePath: string) {
   const editor = editors.find(e => e.exists)?.name;
   if (!editor) return false;
 
-  const terminal = terminals.find(t => t.exists)?.name;
-  if (!terminal) return false;
+      const args =
+        terminal === "konsole" ? ["-e", editor, filePath] :
+        terminal === "xfce4-terminal" ? ["-x", editor, filePath] :
+        terminal === "alacritty" || terminal === "kitty" || terminal === "wezterm" ? ["-e", editor, filePath] :
+        ["-e", editor, filePath];
 
   const args =
     terminal === "konsole" ? ["-e", editor, filePath] :

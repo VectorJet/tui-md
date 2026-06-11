@@ -12,6 +12,7 @@ import { CodeRenderable, SyntaxStyle, RGBA } from "@opentui/core";
 import type { MouseEvent, ScrollBoxRenderable } from "@opentui/core";
 import { renderMermaidAscii } from "beautiful-mermaid";
 import { truncateDiffByHunk } from "../utils/diff-truncate";
+import { getBlockMetrics, clamp } from "../utils/block-metrics";
 
 const DEFAULT_SYNTAX_STYLE = SyntaxStyle.fromStyles({
   default: { fg: RGBA.fromHex("#E6EDF3") },
@@ -47,25 +48,6 @@ const DEFAULT_SYNTAX_STYLE = SyntaxStyle.fromStyles({
   operator: { fg: RGBA.fromHex("#79C0FF") },
 });
 
-const MAX_CODE_BLOCK_HEIGHT = 18;
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function getBlockMetrics(content: string, extraLines = 0) {
-  const lines = content.split("\n");
-  const lineCount = Math.max(1, lines.length + extraLines);
-  const maxLineWidth = Math.max(1, ...lines.map(line => line.length));
-  const viewportWidth = Math.max(1, (process.stdout.columns || 80) - 6);
-
-  return {
-    height: Math.min(MAX_CODE_BLOCK_HEIGHT, lineCount),
-    contentWidth: maxLineWidth,
-    scrollX: maxLineWidth > viewportWidth,
-    scrollY: lineCount > MAX_CODE_BLOCK_HEIGHT,
-  };
-}
 
 function ScrollableBlock({ contentWidth, height, scrollX, scrollY, children }: {
   contentWidth?: number;
@@ -180,18 +162,22 @@ function getColorForClass(className: string, theme: TuiMdTheme): string {
 
 type Token = { text: string; color: string };
 
+function processTextNode(value: string, currentColor: string, lines: Token[][]) {
+  const parts = value.split("\n");
+  for (let i = 0; i < parts.length; i++) {
+    if (i > 0) {
+      lines.push([]); // new line
+    }
+    if (parts[i]) {
+      lines[lines.length - 1].push({ text: parts[i], color: currentColor });
+    }
+  }
+}
+
 function flattenAST(nodes: any[], currentColor: string, lines: Token[][], theme: TuiMdTheme) {
   for (const node of nodes) {
     if (node.type === "text") {
-      const parts = node.value.split("\n");
-      for (let i = 0; i < parts.length; i++) {
-        if (i > 0) {
-          lines.push([]); // new line
-        }
-        if (parts[i]) {
-          lines[lines.length - 1].push({ text: parts[i], color: currentColor });
-        }
-      }
+      processTextNode(node.value, currentColor, lines);
     } else if (node.type === "element") {
       const classNames = (node.properties?.className || []) as string[];
       let nextColor = currentColor;
