@@ -7,6 +7,6 @@ const md = fs.readFileSync("./assets/markdown-test.md", "utf-8");
 
 render(
   <box flexDirection="column">
-    <Markdown>{md}</Markdown>
+    <Markdown content={md} codeOptions={{ lineNumbers: true }} />
   </box>
 );

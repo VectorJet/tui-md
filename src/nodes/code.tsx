@@ -1,11 +1,13 @@
 import type { TuiMdTheme } from "../theme";
 import React from "react";
 import type { Code } from "mdast";
+import type { CodeOptions } from "../index";
 
 interface CodeBlockProps {
   node: Code;
   theme: TuiMdTheme;
   streaming?: boolean | import("../index").MarkdownStreamingOptions;
+  codeOptions?: CodeOptions;
 }
 
 import { CodeRenderable, SyntaxStyle, RGBA } from "@opentui/core";
@@ -47,23 +49,35 @@ const DEFAULT_SYNTAX_STYLE = SyntaxStyle.fromStyles({
   operator: { fg: RGBA.fromHex("#79C0FF") },
 });
 
-const MAX_CODE_BLOCK_HEIGHT = 18;
+const DEFAULT_MAX_CODE_BLOCK_HEIGHT = 18;
+const LINE_NUMBERS_MIN_LINES_DEFAULT = 6;
+
+function resolveMaxHeight(codeOptions?: CodeOptions): number {
+  return codeOptions?.maxHeight ?? DEFAULT_MAX_CODE_BLOCK_HEIGHT;
+}
+
+function resolveShowLineNumbers(lineCount: number, codeOptions?: CodeOptions): boolean {
+  const opt = codeOptions?.lineNumbers;
+  if (!opt) return false;
+  const minLines = typeof opt === "object" ? (opt.minLines ?? LINE_NUMBERS_MIN_LINES_DEFAULT) : LINE_NUMBERS_MIN_LINES_DEFAULT;
+  return lineCount >= minLines;
+}
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-function getBlockMetrics(content: string, extraLines = 0) {
+function getBlockMetrics(content: string, extraLines = 0, maxHeight = DEFAULT_MAX_CODE_BLOCK_HEIGHT) {
   const lines = content.split("\n");
   const lineCount = Math.max(1, lines.length + extraLines);
   const maxLineWidth = Math.max(1, ...lines.map(line => line.length));
   const viewportWidth = Math.max(1, (process.stdout.columns || 80) - 6);
 
   return {
-    height: Math.min(MAX_CODE_BLOCK_HEIGHT, lineCount),
+    height: Math.min(maxHeight, lineCount),
     contentWidth: maxLineWidth,
     scrollX: maxLineWidth > viewportWidth,
-    scrollY: lineCount > MAX_CODE_BLOCK_HEIGHT,
+    scrollY: lineCount > maxHeight,
   };
 }
 
@@ -203,9 +217,10 @@ function flattenAST(nodes: any[], currentColor: string, lines: Token[][], theme:
   }
 }
 
-export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
+export function CodeBlock({ node, theme, streaming, codeOptions }: CodeBlockProps) {
   const lang = node.lang ?? "";
-  
+  const maxHeight = resolveMaxHeight(codeOptions);
+
   if (lang === "mermaid") {
     let output = "";
     try {
@@ -213,8 +228,8 @@ export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
     } catch (e: any) {
       output = `[Mermaid render error]: ${e.message}\n\n${node.value}`;
     }
-    const metrics = getBlockMetrics(output);
-    
+    const metrics = getBlockMetrics(output, 0, maxHeight);
+
     return (
       <box flexDirection="column" width="100%" marginBottom={1}>
         <text fg={theme.muted}>mermaid</text>
@@ -235,7 +250,7 @@ export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
     let hiddenLinesText = "";
 
     const streamOpts = typeof streaming === "object" ? streaming : (streaming ? { tailPinDiffs: true, maxDiffLines: 40, maxDiffHunks: 8 } : null);
-    
+
     if (streamOpts?.tailPinDiffs) {
       const { text, hiddenLines, hiddenHunks } = truncateDiffByHunk(diffStr, streamOpts.maxDiffHunks ?? 8, streamOpts.maxDiffLines ?? 40, { fromTail: true });
       diffStr = text;
@@ -243,7 +258,7 @@ export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
         hiddenLinesText = `... (${hiddenLines} more lines, ${hiddenHunks} more hunks hidden above)`;
       }
     }
-    const metrics = getBlockMetrics(diffStr, hiddenLinesText ? 1 : 0);
+    const metrics = getBlockMetrics(diffStr, hiddenLinesText ? 1 : 0, maxHeight);
 
     return (
       <box flexDirection="column" width="100%" marginBottom={1} backgroundColor={theme.codeBg} paddingX={1} paddingY={0}>
@@ -274,13 +289,19 @@ export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
     flattenAST([{ type: "text", value: node.value }], defaultColor, lines, theme);
   }
 
+  const showLineNumbers = resolveShowLineNumbers(lines.length, codeOptions);
+  const gutterWidth = showLineNumbers ? Math.max(1, String(lines.length).length) : 0;
+
   return (
-    <box flexDirection="column" width="100%" marginBottom={1} backgroundColor={theme.codeBg} paddingX={1} paddingY={0}>
+    <box flexDirection="column" width="100%" marginBottom={1} backgroundColor={theme.codeBg} paddingX={1} paddingY={0} >
       {!!lang && <text fg={theme.muted}>{lang}</text>}
-      <ScrollableBlock {...getBlockMetrics(node.value)}>
+      <ScrollableBlock {...getBlockMetrics(node.value, 0, maxHeight)}>
         <box flexDirection="column">
           {lines.map((line, i) => (
             <box key={i} flexDirection="row" flexShrink={0}>
+              {showLineNumbers && (
+                <text fg={theme.muted}>{String(i + 1).padStart(gutterWidth)} </text>
+              )}
               {line.length === 0 ? (
                 <text fg={defaultColor}>{" "}</text>
               ) : (
