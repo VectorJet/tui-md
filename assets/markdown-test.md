@@ -116,6 +116,64 @@ createServer(handler).listen(3000, () => {
 });
 ```
 
+### Line Numbers (`codeOptions`)
+
+Line numbers are opt-in via the `codeOptions` prop on `<Markdown>`. They appear on blocks with at least `minLines` lines (default 6).
+
+```tsx
+// Enable with default threshold (≥6 lines):
+<Markdown content={md} codeOptions={{ lineNumbers: true }} />
+
+// Always show (even 1-liners):
+<Markdown content={md} codeOptions={{ lineNumbers: { minLines: 1 } }} />
+
+// Control max visible height (default 18):
+<Markdown content={md} codeOptions={{ maxHeight: 30 }} />
+
+// Combine:
+<Markdown content={md} codeOptions={{ lineNumbers: true, maxHeight: 30 }} />
+```
+
+The block below is long enough to trigger line numbers in the demo:
+
+```typescript
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import { visit } from "unist-util-visit";
+import type { Root } from "mdast";
+
+function remarkMark() {
+  return (tree: Root) => {
+    const MARK_RE = /==([^=\n]+)==/g;
+    visit(tree, "text", (node: any, index: any, parent: any) => {
+      if (index == null || !parent) return;
+      if (!MARK_RE.test(node.value)) return;
+      MARK_RE.lastIndex = 0;
+      const parts: any[] = [];
+      let last = 0;
+      let match: RegExpExecArray | null;
+      while ((match = MARK_RE.exec(node.value)) !== null) {
+        if (match.index > last)
+          parts.push({ type: "text", value: node.value.slice(last, match.index) });
+        parts.push({ type: "htmlInline", tag: "mark", attrStr: "", children: [{ type: "text", value: match[1] }] });
+        last = match.index + match[0].length;
+      }
+      if (last < node.value.length)
+        parts.push({ type: "text", value: node.value.slice(last) });
+      parent.children.splice(index, 1, ...parts);
+    });
+  };
+}
+
+export const pipeline = unified()
+  .use(remarkParse)
+  .use(remarkGfm)
+  .use(remarkMath)
+  .use(remarkMark);
+```
+
 ### Multi-Language Syntax Highlighting (Refractor)
 
 Because `tui-md` now natively uses Refractor (PrismJS), over 290 languages are supported without needing to configure WASM grammars.
@@ -326,6 +384,42 @@ The HTML specification is maintained by the W3C.
 
 *[HTML]: Hyper Text Markup Language
 *[W3C]: World Wide Web Consortium
+
+## 13. Collapsible Sections (`<details>`/`<summary>`)
+
+Click the arrow to expand:
+
+<details>
+<summary>What is tui-md?</summary>
+
+`tui-md` is a Markdown rendering library for [OpenTUI](https://github.com/anomalyco/opentui) React applications. It supports the full CommonMark spec plus GFM extensions, LaTeX math, Mermaid diagrams, syntax-highlighted code blocks, and now collapsible `<details>` blocks.
+
+</details>
+
+<details>
+<summary>Nested content inside details</summary>
+
+You can put any block-level content inside:
+
+- Lists work fine
+- So do **inline** styles and `code`
+
+```typescript
+const greet = (name: string) => `Hello, ${name}!`;
+console.log(greet("world"));
+```
+
+> [!NOTE]
+> Admonitions inside details work too.
+
+</details>
+
+<details>
+<summary>Details with no explicit summary text uses a fallback label</summary>
+
+The summary line above was explicit. A `<details>` block with no `<summary>` child falls back to a generic **Details** label.
+
+</details>
 
 ## 14. Math (LaTeX via TeXicode)
 
@@ -817,7 +911,9 @@ tags:
 | 12 | HTML / SVG embedding | Yes |
 | 13 | LaTeX math (inline + block) | Yes |
 | 14 | Admonitions / callouts | Yes |
-| 15 | Collapsible details/summary | Yes |
+| 15 | Collapsible `<details>`/`<summary>` | Yes |
+| 16 | Line numbers via `codeOptions` | Yes |
+| 17 | Configurable `maxHeight` via `codeOptions` | Yes |
 | 16 | Mermaid diagrams | Yes |
 | 17 | YAML front matter | Yes |
 | 18 | Emoji shortcodes | Yes |
@@ -836,4 +932,4 @@ tags:
 
 ---
 
-*This document demonstrates **30 categories** of Markdown syntax covering block-level, inline, extended GFM, LaTeX, diagrams, HTML embedding, and edge cases.*
+*This document demonstrates **30+ categories** of Markdown syntax covering block-level, inline, extended GFM, LaTeX, diagrams, HTML embedding, collapsible sections, line numbers, and edge cases.*
