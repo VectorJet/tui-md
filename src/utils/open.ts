@@ -24,16 +24,25 @@ function execFileAsync(command: string, args: string[]) {
   });
 }
 
-async function commandExists(command: string) {
-  const checker = process.platform === "win32" ? "where" : "sh";
-  const args = process.platform === "win32" ? [command] : ["-lc", `command -v ${command}`];
+const commandExistsCache = new Map<string, Promise<boolean>>();
 
-  try {
-    await execFileAsync(checker, args);
-    return true;
-  } catch {
-    return false;
-  }
+function commandExists(command: string) {
+  if (commandExistsCache.has(command)) return commandExistsCache.get(command)!;
+
+  const promise = (async () => {
+    const checker = process.platform === "win32" ? "where" : "sh";
+    const args = process.platform === "win32" ? [command] : ["-lc", `command -v ${command}`];
+
+    try {
+      await execFileAsync(checker, args);
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
+  commandExistsCache.set(command, promise);
+  return promise;
 }
 
 async function openExternal(target: string): Promise<OpenUrlResult> {
@@ -118,52 +127,55 @@ async function openWithConfiguredEditor(filePath: string) {
 }
 
 async function openWithGuiEditor(filePath: string) {
-  for (const editor of GUI_EDITOR_CANDIDATES) {
-    if (!(await commandExists(editor))) continue;
-    spawnDetached(editor, [filePath]);
-    return true;
-  }
+  const editors = await Promise.all(
+    GUI_EDITOR_CANDIDATES.map(async e => ({ name: e, exists: await commandExists(e) }))
+  );
+  const editor = editors.find(e => e.exists)?.name;
+  if (!editor) return false;
 
-  return false;
+  spawnDetached(editor, [filePath]);
+  return true;
 }
 
+
 async function openWithTerminalEditor(filePath: string) {
-  for (const editor of TERMINAL_EDITOR_CANDIDATES) {
-    if (!(await commandExists(editor))) continue;
+  const [editors, terminals] = await Promise.all([
+    Promise.all(TERMINAL_EDITOR_CANDIDATES.map(async e => ({ name: e, exists: await commandExists(e) }))),
+    Promise.all(TERMINAL_CANDIDATES.map(async t => ({ name: t, exists: await commandExists(t) })))
+  ]);
 
-    for (const terminal of TERMINAL_CANDIDATES) {
-      if (!(await commandExists(terminal))) continue;
+  const editor = editors.find(e => e.exists)?.name;
+  if (!editor) return false;
 
-      const args =
-        terminal === "konsole" ? ["-e", editor, filePath] :
-        terminal === "xfce4-terminal" ? ["--command", `${editor} ${JSON.stringify(filePath)}`] :
-        terminal === "alacritty" || terminal === "kitty" || terminal === "wezterm" ? ["-e", editor, filePath] :
-        ["-e", editor, filePath];
+  const terminal = terminals.find(t => t.exists)?.name;
+  if (!terminal) return false;
 
-      spawnDetached(terminal, args);
-      return true;
-    }
-  }
+  const args =
+    terminal === "konsole" ? ["-e", editor, filePath] :
+    terminal === "xfce4-terminal" ? ["--command", `${editor} ${JSON.stringify(filePath)}`] :
+    terminal === "alacritty" || terminal === "kitty" || terminal === "wezterm" ? ["-e", editor, filePath] :
+    ["-e", editor, filePath];
 
-  return false;
+  spawnDetached(terminal, args);
+  return true;
 }
 
 async function openWithInlineTerminalEditor(filePath: string, renderer?: CliRenderer) {
   if (!renderer) return false;
 
-  for (const editor of TERMINAL_EDITOR_CANDIDATES) {
-    if (!(await commandExists(editor))) continue;
+  const editors = await Promise.all(
+    TERMINAL_EDITOR_CANDIDATES.map(async e => ({ name: e, exists: await commandExists(e) }))
+  );
+  const editor = editors.find(e => e.exists)?.name;
+  if (!editor) return false;
 
-    renderer.suspend();
-    try {
-      await spawnInherited(editor, [filePath]);
-    } finally {
-      renderer.resume();
-    }
-    return true;
+  renderer.suspend();
+  try {
+    await spawnInherited(editor, [filePath]);
+  } finally {
+    renderer.resume();
   }
-
-  return false;
+  return true;
 }
 
 async function openWithSystemFileAssociation(filePath: string) {
