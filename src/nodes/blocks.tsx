@@ -6,12 +6,11 @@ import { baseAttrs, mergeAttrs, toTextAttributes } from "../utils/attrs";
 import { TextAttributes } from "@opentui/core";
 import { useRenderer } from "@opentui/react";
 import { openUrl } from "../utils/open";
-import type { TuiMdLinkHandler, CodeOptions } from "../index";
+import type { TuiMdLinkHandler } from "../index";
 import { ImageBlock } from "./image";
 import { CodeBlock } from "./code";
 import { TableBlock } from "./table";
 import { MathBlock } from "./math";
-import { DetailsBlock } from "./details";
 
 type DefListData = { type: "defList"; children: DefListChild[] };
 type DefListChild =
@@ -24,7 +23,6 @@ interface BlockProps {
   depth?: number;
   onLinkClick?: TuiMdLinkHandler;
   streaming?: boolean | import("../index").MarkdownStreamingOptions;
-  codeOptions?: CodeOptions;
 }
 
 const HEADING_FG_KEYS = ["text", "h1", "h2", "h3", "h4", "h5", "h6"] as const;
@@ -67,10 +65,10 @@ function ClickableLinkText({ node, theme, onLinkClick }: { node: any; theme: Tui
   );
 }
 
-export function BlockNode({ node, theme, depth = 0, onLinkClick, streaming, codeOptions }: BlockProps): React.ReactNode {
+export function BlockNode({ node, theme, depth = 0, onLinkClick, streaming }: BlockProps): React.ReactNode {
   switch (node.type) {
     case "code":
-      return <CodeBlock node={node as any} theme={theme} streaming={streaming} codeOptions={codeOptions} />;
+      return <CodeBlock node={node as any} theme={theme} streaming={streaming} />;
     case "table":
       return <TableBlock node={node as any} theme={theme} />;
     case "math":
@@ -81,13 +79,6 @@ export function BlockNode({ node, theme, depth = 0, onLinkClick, streaming, code
           <text fg={theme.muted}>{(node as any).value}</text>
         </box>
       );
-    case "htmlInline" as any: {
-      const n = node as any;
-      if (n.tag === "details") {
-        return <DetailsBlock node={n} theme={theme} depth={depth} onLinkClick={onLinkClick} streaming={streaming} codeOptions={codeOptions} />;
-      }
-      return null;
-    }
     case "definition" as any:
       return (
         <box flexDirection="column" width="100%" marginBottom={1}>
@@ -201,24 +192,24 @@ export function BlockNode({ node, theme, depth = 0, onLinkClick, streaming, code
                 <text bg={alertColor} fg="#ffffff" attributes={TextAttributes.BOLD}>{` ${alertTitle.toUpperCase()} `}</text>
               </box>
               {contentChildren.map((c, i) => (
-              <BlockNode key={i} node={c as any} theme={theme} depth={depth + 1} onLinkClick={onLinkClick} streaming={streaming} codeOptions={codeOptions} />
+                <BlockNode key={i} node={c as any} theme={theme} depth={depth + 1} onLinkClick={onLinkClick} streaming={streaming} />
+              ))}
+            </box>
+          </box>
+        );
+      }
+
+      return (
+        <box flexDirection="row" width="100%" marginBottom={1}>
+          {/* Left gutter — the "border" */}
+          <text fg={theme.border} flexShrink={0}>{"\u2502 "}</text>
+          <box flexDirection="column" flexGrow={1} flexShrink={1}>
+            {bq.children.map((c, i) => (
+              <BlockNode key={i} node={c as any} theme={{ ...theme, text: theme.muted }} depth={depth + 1} onLinkClick={onLinkClick} streaming={streaming} />
             ))}
           </box>
         </box>
       );
-    }
-
-    return (
-      <box flexDirection="row" width="100%" marginBottom={1}>
-        {/* Left gutter — the "border" */}
-        <text fg={theme.border} flexShrink={0}>{"\u2502 "}</text>
-        <box flexDirection="column" flexGrow={1} flexShrink={1}>
-          {bq.children.map((c, i) => (
-            <BlockNode key={i} node={c as any} theme={{ ...theme, text: theme.muted }} depth={depth + 1} onLinkClick={onLinkClick} streaming={streaming} codeOptions={codeOptions} />
-          ))}
-        </box>
-      </box>
-    );
     }
 
     case "list": {
@@ -236,7 +227,6 @@ export function BlockNode({ node, theme, depth = 0, onLinkClick, streaming, code
               depth={depth}
               onLinkClick={onLinkClick}
               streaming={streaming}
-              codeOptions={codeOptions}
             />
           ))}
         </box>
@@ -246,7 +236,7 @@ export function BlockNode({ node, theme, depth = 0, onLinkClick, streaming, code
     case "thematicBreak":
       return (
         <box width="100%" marginBottom={1}>
-          <text fg={theme.border}>{"─".repeat(Math.max(8, (process.stdout.columns || 80) - 2))}</text>
+          <text fg={theme.border}>{"─".repeat(40)}</text>
         </box>
       );
 
@@ -256,14 +246,14 @@ export function BlockNode({ node, theme, depth = 0, onLinkClick, streaming, code
         <box flexDirection="row" flexWrap="wrap" width="100%" marginBottom={1}>
           <text fg={theme.muted}>[^{fn.identifier}]: </text>
           <box flexDirection="column" flexGrow={1}>
-            {fn.children.map((c, i) => <BlockNode key={i} node={c as any} theme={theme} depth={depth} onLinkClick={onLinkClick} streaming={streaming} codeOptions={codeOptions} />)}
+            {fn.children.map((c, i) => <BlockNode key={i} node={c as any} theme={theme} depth={depth} onLinkClick={onLinkClick} streaming={streaming} />)}
           </box>
         </box>
       );
     }
 
     case "defList" as any:
-      return <DefListBlock node={node as unknown as DefListData} theme={theme} depth={depth} onLinkClick={onLinkClick} streaming={streaming} codeOptions={codeOptions} />;
+      return <DefListBlock node={node as unknown as DefListData} theme={theme} depth={depth} onLinkClick={onLinkClick} streaming={streaming} />;
 
     default:
       return null;
@@ -279,10 +269,9 @@ interface ListItemProps {
   depth: number;
   onLinkClick?: TuiMdLinkHandler;
   streaming?: boolean | import("../index").MarkdownStreamingOptions;
-  codeOptions?: CodeOptions;
 }
 
-function ListItemNode({ node, index, ordered, start, theme, depth, onLinkClick, streaming, codeOptions }: ListItemProps) {
+function ListItemNode({ node, index, ordered, start, theme, depth, onLinkClick, streaming }: ListItemProps) {
   const bullet = ordered ? `${start + index}. ` : depth === 0 ? "\u2022 " : depth === 1 ? "\u25e6 " : "\u25aa ";
   const isTask = node.checked !== null && node.checked !== undefined;
   const checkbox = isTask ? (node.checked ? "[x] " : "[ ] ") : "";
@@ -293,7 +282,7 @@ function ListItemNode({ node, index, ordered, start, theme, depth, onLinkClick, 
         <text fg={theme.list} flexShrink={0}>{bullet}{checkbox}</text>
         <box flexDirection="column" flexGrow={1} flexShrink={1}>
           {node.children.map((c, i) => (
-            <BlockNode key={i} node={c as any} theme={theme} depth={depth + 1} onLinkClick={onLinkClick} streaming={streaming} codeOptions={codeOptions} />
+            <BlockNode key={i} node={c as any} theme={theme} depth={depth + 1} onLinkClick={onLinkClick} streaming={streaming} />
           ))}
         </box>
       </box>
@@ -301,7 +290,7 @@ function ListItemNode({ node, index, ordered, start, theme, depth, onLinkClick, 
   );
 }
 
-function DefListBlock({ node, theme, depth, onLinkClick, streaming, codeOptions }: { node: DefListData; theme: TuiMdTheme; depth: number; onLinkClick?: TuiMdLinkHandler; streaming?: boolean | import("../index").MarkdownStreamingOptions; codeOptions?: CodeOptions }) {
+function DefListBlock({ node, theme, depth, onLinkClick, streaming }: { node: DefListData; theme: TuiMdTheme; depth: number; onLinkClick?: TuiMdLinkHandler; streaming?: boolean | import("../index").MarkdownStreamingOptions }) {
   return (
     <box flexDirection="column" width="100%" marginBottom={1}>
       {node.children.map((child, i) => {
@@ -322,7 +311,7 @@ function DefListBlock({ node, theme, depth, onLinkClick, streaming, codeOptions 
             <text fg={theme.muted} flexShrink={0}>{"  : "}</text>
             <box flexDirection="column" flexGrow={1} flexShrink={1}>
               {child.children.map((c: any, j: number) => (
-                <BlockNode key={j} node={c} theme={theme} depth={depth + 1} onLinkClick={onLinkClick} streaming={streaming} codeOptions={codeOptions} />
+                <BlockNode key={j} node={c} theme={theme} depth={depth + 1} onLinkClick={onLinkClick} streaming={streaming} />
               ))}
             </box>
           </box>

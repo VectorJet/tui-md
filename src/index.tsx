@@ -9,13 +9,6 @@ export type { TuiMdTheme };
 
 export type TuiMdLinkHandler = (url: string) => void | OpenUrlResult | Promise<void | OpenUrlResult>;
 
-export interface CodeOptions {
-  /** Show line numbers. When `true`, numbers appear for blocks with >= `minLines` lines (default 6). */
-  lineNumbers?: boolean | { minLines?: number };
-  /** Override the max visible height for code/diff/mermaid blocks (default 18). */
-  maxHeight?: number;
-}
-
 export interface MarkdownStreamingOptions {
   tailPinDiffs?: boolean;
   maxDiffLines?: number;
@@ -28,10 +21,9 @@ export interface MarkdownProps {
   theme?: Partial<TuiMdTheme>;
   width?: number | string;
   onLinkClick?: TuiMdLinkHandler;
-  codeOptions?: CodeOptions;
 }
 
-export function Markdown({ content, streaming = false, theme: themeOverride, width = "100%", onLinkClick, codeOptions }: MarkdownProps) {
+export function Markdown({ content, streaming = false, theme: themeOverride, width = "100%", onLinkClick }: MarkdownProps) {
   const theme = useMemo(() => resolveTheme(themeOverride), [themeOverride]);
 
   const ast = useMemo(() => {
@@ -40,7 +32,7 @@ export function Markdown({ content, streaming = false, theme: themeOverride, wid
 
   return (
     <box flexDirection="column" width={width as any}>
-      <Walk ast={ast} theme={theme} onLinkClick={onLinkClick} streaming={streaming} codeOptions={codeOptions} />
+      <Walk ast={ast} theme={theme} onLinkClick={onLinkClick} streaming={streaming} />
     </box>
   );
 }
