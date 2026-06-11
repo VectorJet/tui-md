@@ -91,16 +91,15 @@ export function BlockNode({ node, theme, depth = 0, onLinkClick, streaming }: Bl
       let currentGroup: any[] = [];
       
       const flush = () => {
-        if (currentGroup.length > 0) {
-          groups.push(
-            <text key={groups.length} flexShrink={1}>
-              {currentGroup.map((c, i) => (
-                <InlineNode key={i} node={c as any} attrs={baseAttrs()} theme={theme} />
-              ))}
-            </text>
-          );
-          currentGroup = [];
-        }
+        if (currentGroup.length === 0) return;
+        groups.push(
+          <text key={groups.length} flexShrink={1}>
+            {currentGroup.map((c, i) => (
+              <InlineNode key={i} node={c as any} attrs={baseAttrs()} theme={theme} />
+            ))}
+          </text>
+        );
+        currentGroup = [];
       };
 
       for (const child of children) {
