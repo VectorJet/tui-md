@@ -180,18 +180,22 @@ function getColorForClass(className: string, theme: TuiMdTheme): string {
 
 type Token = { text: string; color: string };
 
+function processTextNode(value: string, currentColor: string, lines: Token[][]) {
+  const parts = value.split("\n");
+  for (let i = 0; i < parts.length; i++) {
+    if (i > 0) {
+      lines.push([]); // new line
+    }
+    if (parts[i]) {
+      lines[lines.length - 1].push({ text: parts[i], color: currentColor });
+    }
+  }
+}
+
 function flattenAST(nodes: any[], currentColor: string, lines: Token[][], theme: TuiMdTheme) {
   for (const node of nodes) {
     if (node.type === "text") {
-      const parts = node.value.split("\n");
-      for (let i = 0; i < parts.length; i++) {
-        if (i > 0) {
-          lines.push([]); // new line
-        }
-        if (parts[i]) {
-          lines[lines.length - 1].push({ text: parts[i], color: currentColor });
-        }
-      }
+      processTextNode(node.value, currentColor, lines);
     } else if (node.type === "element") {
       const classNames = (node.properties?.className || []) as string[];
       let nextColor = currentColor;
