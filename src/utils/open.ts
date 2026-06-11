@@ -26,7 +26,7 @@ function execFileAsync(command: string, args: string[]) {
 
 async function commandExists(command: string) {
   const checker = process.platform === "win32" ? "where" : "sh";
-  const args = process.platform === "win32" ? [command] : ["-lc", `command -v ${command}`];
+  const args = process.platform === "win32" ? [command] : ["-lc", `command -v "$1"`, "--", command];
 
   try {
     await execFileAsync(checker, args);
