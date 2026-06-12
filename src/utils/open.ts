@@ -24,16 +24,15 @@ function execFileAsync(command: string, args: string[]) {
   });
 }
 
-async function commandExists(command: string) {
-  const checker = process.platform === "win32" ? "where" : "sh";
-  const args = process.platform === "win32" ? [command] : ["-lc", `command -v "$1"`, "--", command];
+const commandExistsCache = new Map<string, Promise<boolean>>();
 
 function commandExists(command: string) {
   if (commandExistsCache.has(command)) return commandExistsCache.get(command)!;
 
   const promise = (async () => {
     const checker = process.platform === "win32" ? "where" : "sh";
-    const args = process.platform === "win32" ? [command] : ["-lc", `command -v ${command}`];
+    // Use positional parameter to avoid command injection on Unix
+    const args = process.platform === "win32" ? [command] : ["-lc", `command -v "$1"`, "--", command];
 
     try {
       await execFileAsync(checker, args);
@@ -139,7 +138,6 @@ async function openWithGuiEditor(filePath: string) {
   return true;
 }
 
-
 async function openWithTerminalEditor(filePath: string) {
   const [editors, terminals] = await Promise.all([
     Promise.all(TERMINAL_EDITOR_CANDIDATES.map(async e => ({ name: e, exists: await commandExists(e) }))),
@@ -149,12 +147,10 @@ async function openWithTerminalEditor(filePath: string) {
   const editor = editors.find(e => e.exists)?.name;
   if (!editor) return false;
 
-      const args =
-        terminal === "konsole" ? ["-e", editor, filePath] :
-        terminal === "xfce4-terminal" ? ["-x", editor, filePath] :
-        terminal === "alacritty" || terminal === "kitty" || terminal === "wezterm" ? ["-e", editor, filePath] :
-        ["-e", editor, filePath];
+  const terminal = terminals.find(t => t.exists)?.name;
+  if (!terminal) return false;
 
+  // xfce4-terminal uses --command to avoid shell injection; others use -e
   const args =
     terminal === "konsole" ? ["-e", editor, filePath] :
     terminal === "xfce4-terminal" ? ["--command", `${editor} ${JSON.stringify(filePath)}`] :
