@@ -1,11 +1,13 @@
 import type { TuiMdTheme } from "../theme";
 import React from "react";
 import type { Code } from "mdast";
+import type { CodeOptions } from "../index";
 
 interface CodeBlockProps {
   node: Code;
   theme: TuiMdTheme;
   streaming?: boolean | import("../index").MarkdownStreamingOptions;
+  codeOptions?: CodeOptions;
 }
 
 import { CodeRenderable, SyntaxStyle, RGBA } from "@opentui/core";
@@ -189,9 +191,10 @@ function flattenAST(nodes: any[], currentColor: string, lines: Token[][], theme:
   }
 }
 
-export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
+export function CodeBlock({ node, theme, streaming, codeOptions }: CodeBlockProps) {
   const lang = node.lang ?? "";
-  
+  const maxHeight = codeOptions?.maxHeight;
+
   if (lang === "mermaid") {
     let output = "";
     try {
@@ -199,7 +202,7 @@ export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
     } catch (e: any) {
       output = `[Mermaid render error]: ${e.message}\n\n${node.value}`;
     }
-    const metrics = getBlockMetrics(output);
+    const metrics = getBlockMetrics(output, 0, maxHeight);
     
     return (
       <box flexDirection="column" width="100%" marginBottom={1}>
@@ -229,7 +232,7 @@ export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
         hiddenLinesText = `... (${hiddenLines} more lines, ${hiddenHunks} more hunks hidden above)`;
       }
     }
-    const metrics = getBlockMetrics(diffStr, hiddenLinesText ? 1 : 0);
+    const metrics = getBlockMetrics(diffStr, hiddenLinesText ? 1 : 0, maxHeight);
 
     return (
       <box flexDirection="column" width="100%" marginBottom={1} backgroundColor={theme.codeBg} paddingX={1} paddingY={0}>
@@ -260,13 +263,21 @@ export function CodeBlock({ node, theme, streaming }: CodeBlockProps) {
     flattenAST([{ type: "text", value: node.value }], defaultColor, lines, theme);
   }
 
+  const lineNumbersOpt = codeOptions?.lineNumbers;
+  const minLines = typeof lineNumbersOpt === "object" ? (lineNumbersOpt.minLines ?? 6) : 6;
+  const showLineNumbers = !!lineNumbersOpt && lines.length >= minLines;
+  const gutterWidth = showLineNumbers ? Math.max(1, String(lines.length).length) : 0;
+
   return (
     <box flexDirection="column" width="100%" marginBottom={1} backgroundColor={theme.codeBg} paddingX={1} paddingY={0}>
       {!!lang && <text fg={theme.muted}>{lang}</text>}
-      <ScrollableBlock {...getBlockMetrics(node.value)}>
+      <ScrollableBlock {...getBlockMetrics(node.value, 0, maxHeight)}>
         <box flexDirection="column">
           {lines.map((line, i) => (
             <box key={i} flexDirection="row" flexShrink={0}>
+              {showLineNumbers && (
+                <text fg={theme.muted}>{String(i + 1).padStart(gutterWidth)} </text>
+              )}
               {line.length === 0 ? (
                 <text fg={defaultColor}>{" "}</text>
               ) : (

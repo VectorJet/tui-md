@@ -10,6 +10,73 @@ import remarkFrontmatter from "remark-frontmatter";
 import { remarkDefinitionList } from "remark-definition-list";
 
 /**
+ * Merges block-level <details>...</details> sequences into a single custom
+ * mdast "htmlBlock" node. Remark parses block-level HTML as type-6 HTML blocks
+ * ending at blank lines, so <details> and </details> land as separate `html`
+ * nodes with the body markdown nodes in between.
+ */
+function remarkMergeBlockHtml() {
+  return (tree: Root) => {
+    function processLevel(nodes: any[]): any[] {
+      const result: any[] = [];
+      let i = 0;
+
+      while (i < nodes.length) {
+        const node = nodes[i];
+
+        if (node.type === "html") {
+          const value: string = node.value || "";
+          const detailsOpen = value.match(/^<details([^>]*)>/im);
+
+          if (detailsOpen) {
+            // Extract <summary>...</summary> from the opening html chunk if present
+            const summaryMatch = value.match(/<summary>([\s\S]*?)<\/summary>/im);
+            const summaryText = summaryMatch ? summaryMatch[1].trim() : "";
+
+            // Scan forward for matching </details>, tracking nesting depth
+            let j = i + 1;
+            let depth = 1;
+            while (j < nodes.length) {
+              const c = nodes[j];
+              if (c.type === "html") {
+                const v = (c.value || "").trim();
+                if (/^<details(\s|>)/i.test(v)) depth++;
+                else if (/^<\/details>/i.test(v)) {
+                  depth--;
+                  if (depth === 0) break;
+                }
+              }
+              j++;
+            }
+
+            result.push({
+              type: "htmlBlock",
+              tag: "details",
+              attrStr: detailsOpen[1].trim(),
+              summaryText,
+              children: depth === 0 ? processLevel(nodes.slice(i + 1, j)) : [],
+            });
+            i = depth === 0 ? j + 1 : i + 1;
+            continue;
+          }
+        }
+
+        // Recurse into container nodes (blockquote, list, listItem, etc.)
+        if (node.children && node.type !== "html") {
+          node.children = processLevel(node.children);
+        }
+        result.push(node);
+        i++;
+      }
+
+      return result;
+    }
+
+    (tree as any).children = processLevel((tree as any).children);
+  };
+}
+
+/**
  * Merges consecutive html open-tag / inner-nodes / html close-tag sequences
  * into a single custom mdast "htmlInline" node so that they can be processed
  * as a group (e.g. for `<kbd>x</kbd>` or `<sub>text</sub>`).
@@ -248,6 +315,7 @@ const pipeline = unified()
   .use(remarkDefinitionList)
   .use(remarkAbbr)
   .use(remarkMergeInlineHtml)
+  .use(remarkMergeBlockHtml)
   .use(remarkMark)
   .use(remarkGemoji)
   .use(remarkAlert)

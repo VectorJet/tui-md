@@ -327,6 +327,42 @@ The HTML specification is maintained by the W3C.
 *[HTML]: Hyper Text Markup Language
 *[W3C]: World Wide Web Consortium
 
+## 13. Collapsible Sections (`<details>`/`<summary>`)
+
+Click the arrow to expand:
+
+<details>
+<summary>What is tui-md?</summary>
+
+`tui-md` is a Markdown rendering library for OpenTUI React applications. It supports the full CommonMark spec plus GFM extensions, LaTeX math, Mermaid diagrams, syntax-highlighted code blocks, and collapsible `<details>` blocks.
+
+</details>
+
+<details>
+<summary>Nested content inside details</summary>
+
+You can put any block-level content inside:
+
+- Lists work fine
+- So do **inline** styles and `code`
+
+```typescript
+const greet = (name: string) => `Hello, ${name}!`;
+console.log(greet("world"));
+```
+
+> [!NOTE]
+> Admonitions inside details work too.
+
+</details>
+
+<details>
+<summary>Details with fallback label</summary>
+
+The summary line above was explicit. A `<details>` block with no `<summary>` child falls back to a generic **Details** label.
+
+</details>
+
 ## 14. Math (LaTeX via TeXicode)
 
 ### Inline Math
@@ -817,7 +853,9 @@ tags:
 | 12 | HTML / SVG embedding | Yes |
 | 13 | LaTeX math (inline + block) | Yes |
 | 14 | Admonitions / callouts | Yes |
-| 15 | Collapsible details/summary | Yes |
+| 15 | Collapsible `<details>`/`<summary>` | Yes |
+| 16 | Line numbers via `codeOptions` | Yes |
+| 17 | Configurable `maxHeight` via `codeOptions` | Yes |
 | 16 | Mermaid diagrams | Yes |
 | 17 | YAML front matter | Yes |
 | 18 | Emoji shortcodes | Yes |
