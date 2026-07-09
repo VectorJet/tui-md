@@ -12,6 +12,7 @@ import { CodeBlock } from "./code";
 import { TableBlock } from "./table";
 import { MathBlock } from "./math";
 import { DetailsBlock } from "./details";
+import { HeadingBlock } from "./heading";
 
 type DefListData = { type: "defList"; children: DefListChild[] };
 type DefListChild =
@@ -27,8 +28,7 @@ interface BlockProps {
   codeOptions?: CodeOptions;
 }
 
-const HEADING_FG_KEYS = ["text", "h1", "h2", "h3", "h4", "h5", "h6"] as const;
-const HEADING_PREFIXES = ["", "# ", "## ", "### ", "#### ", "##### ", "###### "];
+
 
 function ClickableLinkText({ node, theme, onLinkClick }: { node: any; theme: TuiMdTheme; onLinkClick?: TuiMdLinkHandler }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -145,21 +145,8 @@ export function BlockNode({ node, theme, depth = 0, onLinkClick, streaming, code
       );
     }
 
-    case "heading": {
-      const h = node as Heading;
-      const level = Math.min(h.depth, 6) as 1|2|3|4|5|6;
-      const fg = theme[HEADING_FG_KEYS[level]] ?? theme.accent;
-      return (
-        <box flexDirection="row" width="100%" marginBottom={1}>
-          <text fg={fg} attributes={TextAttributes.BOLD}>
-            <span fg={theme.muted}>{HEADING_PREFIXES[level]}</span>
-            {h.children.map((c, i) => (
-              <InlineNode key={i} node={c as any} attrs={mergeAttrs(baseAttrs(), { bold: true, fg })} theme={theme} />
-            ))}
-          </text>
-        </box>
-      );
-    }
+    case "heading":
+      return <HeadingBlock node={node as Heading} theme={theme} />;
 
     case "yaml" as any: {
       const yamlStr = (node as any).value || "";
